@@ -16,6 +16,32 @@ Graph::Node* Graph::node(Sym name) {
     return node;
 }
 
+void Graph::critical_edge_elimination() {
+    std::vector<std::pair<Node*, Node*>> crit;
+    auto x = exit_; // we create new nodes below - so memorize proper exit ...
+
+    for (auto [_, node] : nodes_) {
+        if (node->succs().size() > 1) {
+            for (auto succ : node->succs()) {
+                for (auto pred : succ->preds()) {
+                    if (pred->succs().size() > 1) crit.emplace_back(succ, pred);
+                }
+            }
+        }
+    }
+
+    for (auto [v, w] : crit) {
+        auto name = driver().sym(v->name().str() + "." + w->name().str());
+        auto x = node(name);
+        v->succs_.erase(w);
+        w->preds_.erase(v);
+        v->link(x);
+        x->link(w);
+    }
+
+    exit_ = x; // ... and restore again
+}
+
 /*
  * number
  */
@@ -51,31 +77,45 @@ std::pair<size_t, size_t> Graph::Node::number(size_t pre, size_t post) {
     return {pre, post};
 }
 
-void Graph::critical_edge_elimination() {
-    std::vector<std::pair<Node*, Node*>> crit;
-    auto x = exit_; // we create new nodes below - so memorize proper exit ...
+/*
+ * dom
+ */
 
-    for (auto [_, node] : nodes_) {
-        if (node->succs().size() > 1) {
-            for (auto succ : node->succs()) {
-                for (auto pred : succ->preds()) {
-                    if (pred->succs().size() > 1) crit.emplace_back(succ, pred);
-                }
+#if 0
+template<size_t mode> void Graph::dom_() {
+    // Cooper et al, 2001. A Simple, Fast Dominance Algorithm. http://www.cs.rice.edu/~keith/EMBED/dom.pdf
+    idoms_[cfg().entry()] = cfg().entry();
+
+    // all idoms different from entry are set to their first found dominating pred
+    for (auto n : cfg().reverse_post_order().skip_front()) {
+        for (auto pred : cfg().preds(n)) {
+            if (cfg().index(pred) < cfg().index(n)) {
+                idoms_[n] = pred;
+                goto outer_loop;
+            }
+        }
+        fe::unreachable();
+outer_loop:;
+    }
+
+    for (bool todo = true; todo;) {
+        todo = false;
+
+        for (auto n : cfg().reverse_post_order().skip_front()) {
+            const CFNode* new_idom = nullptr;
+            for (auto pred : cfg().preds(n)) new_idom = new_idom ? least_common_ancestor(new_idom, pred) : pred;
+
+            assert(new_idom);
+            if (idom(n) != new_idom) {
+                idoms_[n] = new_idom;
+                todo      = true;
             }
         }
     }
 
-    for (auto [v, w] : crit) {
-        auto name = driver().sym(v->name().str() + "." + w->name().str());
-        auto x = node(name);
-        v->succs_.erase(w);
-        w->preds_.erase(v);
-        v->link(x);
-        x->link(w);
-    }
-
-    exit_ = x; // ... and restore again
+    for (auto n : cfg().reverse_post_order().skip_front()) children_[idom(n)].push_back(n);
 }
+#endif
 
 /*
  * ostream

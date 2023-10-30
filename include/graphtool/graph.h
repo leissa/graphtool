@@ -1,5 +1,6 @@
 #pragma once
 
+#include <array>
 #include <ostream>
 #include <fe/driver.h>
 
@@ -24,6 +25,9 @@ public:
         template<size_t mode> size_t pre()  const { return order_[mode].pre; }
         template<size_t mode> size_t post() const { return order_[mode].post; }
         template<size_t mode> size_t rp()   const { return order_[mode].rp; }
+        template<size_t mode> Node* idom()  const { return idom_[mode]; }
+        template<size_t mode> const auto& children() const { return children_[mode]; }
+        template<size_t mode> auto& children() { return children_[mode]; }
 
         void link(Node* succ) {
             this->succs_.emplace(succ);
@@ -47,7 +51,9 @@ public:
             size_t rp   = Not_Visited;
         };
 
-        Order order_[2];
+        std::array<Order, 2> order_;
+        std::array<Node*, 2> idom_;
+        std::array<std::vector<Node*>, 2> children_;
 
         friend class Graph;
     };
@@ -80,6 +86,7 @@ public:
     Node* node(Sym name);
     void critical_edge_elimination();
     void number();
+    void dom();
 
     friend std::ostream& operator<<(std::ostream&, const Graph&);
 
@@ -96,13 +103,14 @@ public:
 
 private:
     template<size_t mode> void number_();
+    template<size_t mode> void dom_();
 
     fe::Driver& driver_;
     Sym name_;
     Node* entry_ = nullptr;
     Node* exit_  = nullptr;
     fe::SymMap<Node*> nodes_;
-    std::vector<Node*> rpo_[2];
+    std::array<std::vector<Node*>, 2> rpo_;
 };
 
 } // namespace graphtool
