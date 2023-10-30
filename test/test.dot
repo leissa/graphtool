@@ -1,0 +1,12 @@
+digraph test {
+    A -> B;
+    B -> C;
+    C -> D;
+    C -> E;
+    D -> F;
+    E -> F;
+    F -> C;
+    C -> G;
+    G -> B;
+    B -> H;
+}

@@ -1,6 +1,6 @@
-target_sources(let
+target_sources(graphtool
     PRIVATE
-        eval.cpp
+        graph.cpp
         lexer.cpp
         parser.cpp
         stream.cpp

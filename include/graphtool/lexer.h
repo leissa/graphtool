@@ -7,10 +7,10 @@
 
 #include <fe/lexer.h>
 
-#include "let/driver.h"
-#include "let/tok.h"
+#include "graphtool/driver.h"
+#include "graphtool/tok.h"
 
-namespace let {
+namespace graphtool {
 
 class Lexer : public fe::Lexer<1, Lexer> {
 public:
@@ -20,10 +20,8 @@ public:
     Driver& driver() { return driver_; }
 
 private:
-    void eat_comments();
-
     Driver& driver_;
     fe::SymMap<Tok::Tag> keywords_;
 };
 
-} // namespace let
+} // namespace graphtool

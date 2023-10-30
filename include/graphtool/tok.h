@@ -6,39 +6,31 @@
 #include <fe/loc.h>
 #include <fe/sym.h>
 
-namespace let {
+namespace graphtool {
 
 using fe::Loc;
 using fe::Pos;
 using fe::Sym;
 
 // clang-format off
-#define LET_KEY(m)      \
-    m(K_let,   "let")   \
-    m(K_print, "print") \
+#define LET_KEY(m)            \
+    m(K_digraph,   "digraph") \
 
-#define LET_VAL(m)                        \
-    m(V_int,        "<interger literal>") \
-    m(V_sym,        "<identifier>")       \
+#define LET_VAL(m)                   \
+    m(V_sym,        "<identifier>")  \
 
 #define LET_TOK(m)                   \
     m(EoF,          "<end of file>") \
     /* delimiter */                  \
-    m(D_paren_l,    "(")             \
-    m(D_paren_r,    ")")             \
+    m(D_brace_l,    "{")             \
+    m(D_brace_r,    "}")             \
     /* further tokens */             \
-    m(T_ass,        "=")             \
+    m(T_arrow,      "->")            \
     m(T_semicolon,  ";")             \
 
 #define CODE(t, str) + 1
 constexpr auto Num_Keys = 0 LET_KEY(CODE);
 #undef CODE
-
-#define LET_OP(m)      \
-    m(O_add, "+", Add) \
-    m(O_sub, "-", Add) \
-    m(O_mul, "*", Mul) \
-    m(O_div, "/", Mul) \
 
 class Tok {
 public:
@@ -48,9 +40,6 @@ public:
         LET_KEY(CODE)
         LET_VAL(CODE)
         LET_TOK(CODE)
-#undef CODE
-#define CODE(t, str, prec) t,
-        LET_OP (CODE)
 #undef CODE
     };
     // clang-format on
@@ -71,10 +60,6 @@ public:
         : loc_(loc)
         , tag_(Tag::V_sym)
         , sym_(sym) {}
-    Tok(Loc loc, uint64_t u64)
-        : loc_(loc)
-        , tag_(Tag::V_int)
-        , u64_(u64) {}
 
     Loc loc() const { return loc_; }
     Tag tag() const { return tag_; }
@@ -85,11 +70,8 @@ public:
         assert(isa(Tag::V_sym));
         return sym_;
     }
-    uint64_t u64() const { return u64_; }
 
     static std::string_view str(Tok::Tag);
-    static Prec un_prec(Tok::Tag);
-    static Prec bin_prec(Tok::Tag);
 
     friend std::ostream& operator<<(std::ostream&, Tag);
     friend std::ostream& operator<<(std::ostream&, Tok);
@@ -97,13 +79,10 @@ public:
 private:
     Loc loc_;
     Tag tag_;
-    union {
-        Sym sym_;
-        uint64_t u64_;
-    };
+    Sym sym_;
 };
 
-} // namespace let
+} // namespace graphtool
 
 template<>
-struct std::formatter<let::Tok> : fe::ostream_formatter {};
+struct std::formatter<graphtool::Tok> : fe::ostream_formatter {};

@@ -1,15 +1,15 @@
-add_executable(let main.cpp)
+add_executable(graphtool main.cpp)
 
-target_sources(let PRIVATE main.cpp)
-target_link_libraries(let PRIVATE fe)
-target_include_directories(let
+target_sources(graphtool PRIVATE main.cpp)
+target_link_libraries(graphtool PRIVATE fe)
+target_include_directories(graphtool
     PUBLIC
         $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
         $<INSTALL_INTERFACE:include>
 )
-target_compile_features(let PUBLIC cxx_std_${CMAKE_CXX_STANDARD})
+target_compile_features(graphtool PUBLIC cxx_std_${CMAKE_CXX_STANDARD})
 if (MSVC AND BUILD_SHARED_LIBS AND FE_ABSL)
-    target_compile_definitions(liblet PUBLIC ABSL_CONSUME_DLL)
+    target_compile_definitions(libgraphtool PUBLIC ABSL_CONSUME_DLL)
 endif()
 
-add_subdirectory(let)
+add_subdirectory(graphtool)

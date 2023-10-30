@@ -3,7 +3,7 @@
 #include <fe/arena.h>
 #include <fe/driver.h>
 
-namespace let {
+namespace graphtool {
 
 class Driver : public fe::Driver {
 public:
@@ -16,4 +16,4 @@ private:
     fe::Arena arena_;
 };
 
-} // namespace let
+} // namespace graphtool

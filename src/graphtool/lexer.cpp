@@ -1,4 +1,4 @@
-#include "let/lexer.h"
+#include "graphtool/lexer.h"
 
 #include <ranges>
 
@@ -6,7 +6,7 @@
 
 using namespace std::literals;
 
-namespace let {
+namespace graphtool {
 
 Lexer::Lexer(Driver& driver, std::istream& istream, const std::filesystem::path* path)
     : fe::Lexer<1, Lexer>(istream, path)
@@ -23,30 +23,14 @@ Tok Lexer::lex() {
 
         if (accept(fe::utf8::EoF)) return {loc_, Tok::Tag::EoF};
         if (accept_if(isspace)) continue;
-        if (accept('(')) return {loc_, Tok::Tag::D_paren_l};
-        if (accept(')')) return {loc_, Tok::Tag::D_paren_r};
-        if (accept('=')) return {loc_, Tok::Tag::T_ass};
         if (accept(';')) return {loc_, Tok::Tag::T_semicolon};
-        if (accept('+')) return {loc_, Tok::Tag::O_add};
-        if (accept('-')) return {loc_, Tok::Tag::O_sub};
-        if (accept('*')) return {loc_, Tok::Tag::O_mul};
-        if (accept('/')) {
-            if (accept('*')) {
-                eat_comments();
-                continue;
-            }
-            if (accept('/')) {
-                while (ahead() != fe::utf8::EoF && ahead() != '\n') next();
-                continue;
-            }
+        if (accept('{')) return {loc_, Tok::Tag::D_brace_l};
+        if (accept('}')) return {loc_, Tok::Tag::D_brace_r};
 
-            return {loc_, Tok::Tag::O_div};
-        }
-
-        // integer value
-        if (accept_if(isdigit)) {
-            while (accept_if(isdigit)) {}
-            return {loc_, std::strtoull(str_.c_str(), nullptr, 10)};
+        if (accept('-')) {
+            if (accept('>')) return {loc_, Tok::Tag::T_arrow};
+            driver_.err({loc_.path, peek_}, "invalid token '-'; did you mean '->'?");
+            continue;
         }
 
         // lex identifier or keyword
@@ -62,16 +46,4 @@ Tok Lexer::lex() {
     }
 }
 
-void Lexer::eat_comments() {
-    while (true) {
-        while (ahead() != fe::utf8::EoF && ahead() != '*') next();
-        if (ahead() == fe::utf8::EoF) {
-            driver_.err(loc_, "non-terminated multiline comment");
-            return;
-        }
-        next();
-        if (accept('/')) break;
-    }
-}
-
-} // namespace let
+} // namespace graphtool

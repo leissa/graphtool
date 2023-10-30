@@ -2,11 +2,11 @@
 
 #include <fe/parser.h>
 
-#include "let/ast.h"
-#include "let/driver.h"
-#include "let/lexer.h"
+#include "graphtool/driver.h"
+#include "graphtool/graph.h"
+#include "graphtool/lexer.h"
 
-namespace let {
+namespace graphtool {
 
 class Parser : public fe::Parser<Tok, Tok::Tag, 1, Parser> {
 public:
@@ -15,21 +15,12 @@ public:
     Driver& driver() { return lexer_.driver(); }
     Lexer& lexer() { return lexer_; }
 
-    AST<Prog> parse_prog();
+    Graph parse_graph();
 
 private:
-    template<class T, class... Args>
-    auto ast(Args&&... args) {
-        return driver().ast<T>(std::forward<Args&&>(args)...);
-    }
-
     Sym parse_sym(std::string_view ctxt = {});
-
-    AST<Expr> parse_expr(std::string_view ctxt, Tok::Prec = Tok::Prec::Bottom);
-    AST<Expr> parse_primary_or_unary_expr(std::string_view ctxt);
-
-    AST<Stmt> parse_let_stmt();
-    AST<Stmt> parse_print_stmt();
+    Graph::Node* parse_node();
+    void parse_path();
 
     /// Issue an error message of the form:
     /// `expected <what>, got '<tok>' while parsing <ctxt>`
@@ -40,10 +31,11 @@ private:
 
     void syntax_err(Tok::Tag tag, std::string_view ctxt);
 
+    Graph graph_;
     Lexer lexer_;
     Sym error_;
 
     friend class fe::Parser<Tok, Tok::Tag, 1, Parser>;
 };
 
-} // namespace let
+} // namespace graphtool
