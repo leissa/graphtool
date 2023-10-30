@@ -20,8 +20,8 @@ public:
 private:
     Sym parse_sym(std::string_view ctxt = {});
     Graph::NodeSet parse_sub_graph(std::string_view ctxt);
-    void parse_stmt_list();
-    void parse_edge_stmt();
+    void parse_stmt_list(Graph::NodeSet&);
+    void parse_edge_stmt(Graph::NodeSet&);
 
     /// Issue an error message of the form:
     /// `expected <what>, got '<tok>' while parsing <ctxt>`

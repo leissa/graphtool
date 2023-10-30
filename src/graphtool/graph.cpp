@@ -23,9 +23,7 @@ void Graph::critical_edge_elimination() {
     for (auto [_, node] : nodes_) {
         if (node->succs().size() > 1) {
             for (auto succ : node->succs()) {
-                for (auto pred : succ->preds()) {
-                    if (pred->succs().size() > 1) crit.emplace_back(succ, pred);
-                }
+                if (succ->preds().size() > 1) crit.emplace_back(node, succ);
             }
         }
     }
