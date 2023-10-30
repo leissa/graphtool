@@ -71,6 +71,8 @@ public:
     fe::Driver& driver() { return driver_; }
     Sym name() const { return name_; }
     const auto& nodes() const { return nodes_; }
+    template<size_t mode> Node* entry() const { return mode == 0 ? entry_ : exit_; }
+    template<size_t mode> Node* exit() const { return mode == 0 ? exit_ : exit_; }
     template<size_t mode> const auto& rpo() const { return rpo_[mode]; }
     ///@}
 

@@ -27,7 +27,7 @@ void Graph::number() {
 
 template<size_t mode>
 void Graph::number_() {
-    auto [n, m] = entry_->number<mode>(0, 0);
+    auto [n, m] = entry<mode>()->template number<mode>(0, 0);
     assert(n == m);
     rpo_[mode].resize(n);
     for (auto [_, node] : nodes()) {
@@ -53,6 +53,7 @@ std::pair<size_t, size_t> Graph::Node::number(size_t pre, size_t post) {
 
 void Graph::critical_edge_elimination() {
     std::vector<std::pair<Node*, Node*>> crit;
+    auto x = exit_; // we create new nodes below - so memorize proper exit ...
 
     for (auto [_, node] : nodes_) {
         if (node->succs().size() > 1) {
@@ -72,6 +73,8 @@ void Graph::critical_edge_elimination() {
         v->link(x);
         x->link(w);
     }
+
+    exit_ = x; // ... and restore again
 }
 
 /*
@@ -79,7 +82,7 @@ void Graph::critical_edge_elimination() {
  */
 
 std::ostream& operator<<(std::ostream& os, const Graph::Node& node) {
-    return os << std::format("\t\"{}[{}|{}|{}][{}|{}|{}]\"", node.name(),
+    return os << std::format("\t\"{}\\n[{}|{}|{}]\\n[{}|{}|{}]\"", node.name(),
             node.pre<0>(), node.post<0>(), node.rp<0>(),
             node.pre<1>(), node.post<1>(), node.rp<1>());
 }
