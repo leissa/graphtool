@@ -58,3 +58,7 @@ s = ','
   | ';'
   | (ID | g) '->' ... '->' (ID | g) (* edge statement *)
 ```
+
+## Entry \& Exit
+
+The first node mentioned is considered the *entry*, the last one the *exit.

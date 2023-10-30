@@ -19,10 +19,10 @@ int main(int argc, char** argv) {
                                     "OPTIONS, ARGUMENTS:\n"
                                     "  -?, -h, --help"
                                     "  -v, --version           Display version info and exit.\n"
-                                    "  -d, --dump              Dumps the graphtool program again.\n"
-                                    "  -e, --eval              Evaluate the graphtool program.\n"
+                                    "  -c, --crit              Eliminate critical edges.\n"
                                     "  <file>                  Input file.\n";
         std::string input;
+        bool crit = false;
 
         for (int i = 1; i < argc; ++i) {
             if (argv[i] == "-v"s || argv[i] == "--version"s) {
@@ -31,6 +31,8 @@ int main(int argc, char** argv) {
             } else if (argv[i] == "-?"s || argv[i] == "-h"s || argv[i] == "--help"s) {
                 std::cerr << usage;
                 return EXIT_SUCCESS;
+            } else if (argv[i] == "-c"s || argv[i] == "--crit"s) {
+                crit = true;
             } else {
                 if (!input.empty()) throw std::invalid_argument("more than one input file given");
                 input = argv[i];
@@ -50,6 +52,12 @@ int main(int argc, char** argv) {
             std::cerr << num << " error(s) encountered" << std::endl;
             return EXIT_FAILURE;
         }
+
+        if (crit) graph.critical_edge_elimination();
+        graph.number();
+
+        std::ofstream ofs("out.dot");
+        ofs << graph;
     } catch (const std::exception& e) {
         std::cerr << "error: " << e.what() << std::endl;
         return EXIT_FAILURE;

@@ -10,7 +10,8 @@ namespace graphtool {
 using Tag = Tok::Tag;
 
 Parser::Parser(Driver& driver, std::istream& istream, const std::filesystem::path* path)
-    : lexer_(driver, istream, path)
+    : graph_(driver)
+    , lexer_(driver, istream, path)
     , error_(driver.sym("<error>"s)) {
     init(path);
 }
