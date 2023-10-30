@@ -21,27 +21,33 @@ public:
 
     public:
         Sym name() const { return name_; }
-        size_t pre() const { return pre_; }
-        size_t post() const { return post_; }
-        size_t rp() const { return rp_; }
+        template<size_t mode> size_t pre()  const { return order_[mode].pre; }
+        template<size_t mode> size_t post() const { return order_[mode].post; }
+        template<size_t mode> size_t rp()   const { return order_[mode].rp; }
 
         void link(Node* succ) {
             this->succs_.emplace(succ);
             succ->preds_.emplace(this);
         }
-        const auto& preds() const { return preds_; }
-        const auto& succs() const { return succs_; }
+
+        template<size_t mode = 0> const auto& preds() const { return mode == 0 ? preds_ : succs_; }
+        template<size_t mode = 0> const auto& succs() const { return mode == 0 ? succs_ : preds_; }
 
         friend std::ostream& operator<<(std::ostream&, const Node&);
 
     private:
-        std::pair<size_t, size_t> number(size_t, size_t);
+        template<size_t mode> std::pair<size_t, size_t> number(size_t, size_t);
 
         Sym name_;
         NodeSet preds_, succs_;
-        size_t pre_  = Not_Visited;
-        size_t post_ = Not_Visited;
-        size_t rp_   = Not_Visited;
+
+        struct Order {
+            size_t pre  = Not_Visited;
+            size_t post = Not_Visited;
+            size_t rp   = Not_Visited;
+        };
+
+        Order order_[2];
 
         friend class Graph;
     };
@@ -65,13 +71,12 @@ public:
     fe::Driver& driver() { return driver_; }
     Sym name() const { return name_; }
     const auto& nodes() const { return nodes_; }
-    const auto& rpo() const { return rpo_; }
+    template<size_t mode> const auto& rpo() const { return rpo_[mode]; }
     ///@}
 
     void set_name(Sym name) { name_ = name; }
     Node* node(Sym name);
     void critical_edge_elimination();
-
     void number();
 
     friend std::ostream& operator<<(std::ostream&, const Graph&);
@@ -88,12 +93,14 @@ public:
     }
 
 private:
+    template<size_t mode> void number_();
+
     fe::Driver& driver_;
     Sym name_;
     Node* entry_ = nullptr;
     Node* exit_  = nullptr;
     fe::SymMap<Node*> nodes_;
-    std::vector<Node*> rpo_;
+    std::vector<Node*> rpo_[2];
 };
 
 } // namespace graphtool

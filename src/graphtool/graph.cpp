@@ -21,23 +21,32 @@ Graph::Node* Graph::node(Sym name) {
  */
 
 void Graph::number() {
-    auto [n, m] = entry_->number(0, 0);
+    number_<0>();
+    number_<1>();
+}
+
+template<size_t mode>
+void Graph::number_() {
+    auto [n, m] = entry_->number<mode>(0, 0);
     assert(n == m);
-    rpo_.resize(n);
+    rpo_[mode].resize(n);
     for (auto [_, node] : nodes()) {
-        if (node->post_ != Graph::Node::Not_Visited) {
-            size_t i = n - node->post_ - 1;
-            node->rp_ = i;
-            rpo_[i] = node;
+        auto& order = node->order_[mode];
+        if (order.post != Graph::Node::Not_Visited) {
+            size_t i = n - order.post - 1;
+            order.rp = i;
+            rpo_[mode][i] = node;
         }
     }
 }
 
+template<size_t mode>
 std::pair<size_t, size_t> Graph::Node::number(size_t pre, size_t post) {
-    if (pre_ == Not_Visited) {
-        pre_ = pre++;
-        for (auto succ : succs()) std::tie(pre, post) = succ->number(pre, post);
-        post_ = post++;
+    auto& order = order_[mode];
+    if (order.pre == Not_Visited) {
+        order.pre = pre++;
+        for (auto succ : succs<mode>()) std::tie(pre, post) = succ->template number<mode>(pre, post);
+        order.post = post++;
     }
     return {pre, post};
 }
@@ -70,12 +79,14 @@ void Graph::critical_edge_elimination() {
  */
 
 std::ostream& operator<<(std::ostream& os, const Graph::Node& node) {
-    return os << std::format("\t\"{}|{}|{}|{}\"", node.name(), node.pre(), node.post(), node.rp());
+    return os << std::format("\t\"{}[{}|{}|{}][{}|{}|{}]\"", node.name(),
+            node.pre<0>(), node.post<0>(), node.rp<0>(),
+            node.pre<1>(), node.post<1>(), node.rp<1>());
 }
 
 std::ostream& operator<<(std::ostream& os, const Graph& graph) {
     os << std::format("digraph {} {{", graph.name()) << std::endl;
-    for (const char* sep = ""; auto node : graph.rpo()) {
+    for (const char* sep = ""; auto node : graph.rpo<0>()) {
         for (auto succ : node->succs())
             os << std::format("\t{} -> {}", *node, *succ) << sep;
         sep = "\n";
