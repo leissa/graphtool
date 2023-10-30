@@ -23,6 +23,7 @@ Tok Lexer::lex() {
 
         if (accept(fe::utf8::EoF)) return {loc_, Tok::Tag::EoF};
         if (accept_if(isspace)) continue;
+        if (accept(',')) return {loc_, Tok::Tag::T_comma};
         if (accept(';')) return {loc_, Tok::Tag::T_semicolon};
         if (accept('{')) return {loc_, Tok::Tag::D_brace_l};
         if (accept('}')) return {loc_, Tok::Tag::D_brace_r};

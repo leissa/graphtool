@@ -4,7 +4,11 @@
 ![macos](https://img.shields.io/github/actions/workflow/status/leissa/graphtool/macos.yml?logo=apple&logoColor=white&label=macos&link=https%3A%2F%2Fgithub.com%2Fleissa%2Fgraphtool%2Factions%2Fworkflows%2Fmacos.yml)
 ![windows](https://img.shields.io/github/actions/workflow/status/leissa/graphtool/windows.yml?logo=windows&logoColor=white&label=windows&link=https%3A%2F%2Fgithub.com%2Fgraphtool%2Fleissa%2Factions%2Fworkflows%2Fwindows.yml)
 
-A simple demo language that builds upon [FE](https://leissa.github.io/fe/).
+A small tool that reads a subset from [Graphviz'](https://graphviz.org) [DOT language](https://graphviz.org/doc/info/lang.html) and calculates several [dominance-related](https://en.wikipedia.org/wiki/Dominator_(graph_theory)) properties:
+* dominance tree
+* postdominance tree
+* dominance frontiers
+* postdominance tree frontieres (aka control dependence)
 
 ## Usage
 
@@ -47,6 +51,10 @@ Invoke the interpreter like so:
 ## Grammar
 
 ```ebnf
-g = 'digraph' ID '{' p .. p '}' (* graph *)
-p = ID -> ... -> ID ';'         (* path *)
+d = 'digraph' ID g                  (* digraph *)
+g = '{' S '}'                       (* subgraph *)
+S = s ... s                         (* statement list *)
+s = ','
+  | ';'
+  | (ID | g) '->' ... '->' (ID | g) (* edge statement *)
 ```

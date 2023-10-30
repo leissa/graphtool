@@ -8,6 +8,9 @@ using fe::Sym;
 
 class Graph {
 public:
+    class Node;
+    using NodeSet = std::unordered_set<Node*>;
+
     class Node {
     private:
         Node(Sym name)
@@ -23,8 +26,8 @@ public:
 
     private:
         Sym name_;
-        std::unordered_set<Node*> preds_;
-        std::unordered_set<Node*> succs_;
+        NodeSet preds_;
+        NodeSet succs_;
 
         friend class Graph;
     };

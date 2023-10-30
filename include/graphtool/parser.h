@@ -19,8 +19,9 @@ public:
 
 private:
     Sym parse_sym(std::string_view ctxt = {});
-    Graph::Node* parse_node();
-    void parse_path();
+    Graph::NodeSet parse_sub_graph(std::string_view ctxt);
+    void parse_stmt_list();
+    void parse_edge_stmt();
 
     /// Issue an error message of the form:
     /// `expected <what>, got '<tok>' while parsing <ctxt>`

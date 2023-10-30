@@ -26,6 +26,7 @@ using fe::Sym;
     m(D_brace_r,    "}")             \
     /* further tokens */             \
     m(T_arrow,      "->")            \
+    m(T_comma,      ",")             \
     m(T_semicolon,  ";")             \
 
 #define CODE(t, str) + 1

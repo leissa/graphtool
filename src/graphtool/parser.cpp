@@ -31,34 +31,53 @@ Sym Parser::parse_sym(std::string_view ctxt) {
     return error_;
 }
 
-Graph::Node* Parser::parse_node() {
-    auto name = parse_sym("name of a node");
-    return graph_.node(name);
-}
-
 Graph Parser::parse_graph() {
     expect(Tag::K_digraph, "graph");
     graph_.set_name(parse_sym("graph name"));
-    expect(Tag::D_brace_l, "graph");
-
-    while (ahead().isa(Tag::V_sym)) parse_path();
-
-    expect(Tag::D_brace_r, "graph");
+    parse_sub_graph("graph");
     expect(Tag::EoF, "graph");
 
     return std::move(graph_);
 }
 
-void Parser::parse_path() {
-    auto lhs = parse_node();
-
-    while (accept(Tag::T_arrow)) {
-        auto rhs = parse_node();
-        lhs->link(rhs);
-        lhs = rhs;
+Graph::NodeSet Parser::parse_sub_graph(std::string_view ctxt) {
+    Graph::NodeSet nodes;
+    if (auto tok = accept(Tok::Tag::V_sym)) {
+        nodes.emplace(graph_.node(tok->sym()));
+    } else if (accept(Tag::D_brace_l)) {
+        parse_stmt_list();
+        expect(Tag::D_brace_r, "subgraph");
+    } else {
+        err("subgraph", ctxt);
     }
 
-    expect(Tag::T_semicolon, "path");
+    return nodes;
+}
+
+void Parser::parse_stmt_list() {
+    while (true) {
+        // clang-format off
+        switch (ahead().tag()) {
+            case Tag::T_comma:
+            case Tag::T_semicolon:  lex(); continue;
+            case Tag::D_brace_l:
+            case Tag::V_sym:        parse_edge_stmt(); continue;
+            default:                return;
+        }
+        // clang-format on
+    }
+}
+
+void Parser::parse_edge_stmt() {
+    auto lhs = parse_sub_graph("edge statement");
+    while (accept(Tag::T_arrow)) {
+        auto rhs = parse_sub_graph("edge statement");
+        for (auto pred : lhs) {
+            for (auto succ : rhs) pred->link(succ);
+        }
+
+        lhs = std::move(rhs);
+    }
 }
 
 } // namespace graphtool
