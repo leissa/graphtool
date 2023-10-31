@@ -9,6 +9,7 @@ A small tool that reads a subset from [Graphviz'](https://graphviz.org) [DOT lan
 * postdominance tree
 * dominance frontiers
 * postdominance tree frontieres (aka control dependence)
+* optionally eliminate [critical edges](https://en.wikipedia.org/wiki/Control-flow_graph#Special_edges) beforehand
 
 ## Usage
 
