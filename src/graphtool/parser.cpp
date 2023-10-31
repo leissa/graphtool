@@ -11,8 +11,7 @@ using Tag = Tok::Tag;
 
 Parser::Parser(Driver& driver, std::istream& istream, const std::filesystem::path* path)
     : graph_(driver)
-    , lexer_(driver, istream, path)
-    , error_(driver.sym("<error>"s)) {
+    , lexer_(driver, istream, path) {
     init(path);
 }
 
@@ -26,15 +25,9 @@ void Parser::syntax_err(Tag tag, std::string_view ctxt) {
     err(msg, ctxt);
 }
 
-Sym Parser::parse_sym(std::string_view ctxt) {
-    if (ahead().isa(Tag::V_sym)) return lex().sym();
-    err("identifier", ctxt);
-    return error_;
-}
-
 Graph Parser::parse_graph() {
     expect(Tag::K_digraph, "graph");
-    graph_.set_name(parse_sym("graph name"));
+    if (auto tok = accept(Tok::Tag::V_sym)) graph_.set_name(tok->sym());
     parse_sub_graph("graph");
     expect(Tag::EoF, "graph");
 

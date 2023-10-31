@@ -18,7 +18,6 @@ public:
     Graph parse_graph();
 
 private:
-    Sym parse_sym(std::string_view ctxt = {});
     Graph::NodeSet parse_sub_graph(std::string_view ctxt);
     void parse_stmt_list(Graph::NodeSet&);
     void parse_edge_stmt(Graph::NodeSet&);
@@ -34,7 +33,6 @@ private:
 
     Graph graph_;
     Lexer lexer_;
-    Sym error_;
 
     friend class fe::Parser<Tok, Tok::Tag, 1, Parser>;
 };
