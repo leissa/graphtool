@@ -23,14 +23,27 @@ Tok Lexer::lex() {
 
         if (accept(fe::utf8::EoF)) return {loc_, Tok::Tag::EoF};
         if (accept_if(isspace)) continue;
-        if (accept(',')) return {loc_, Tok::Tag::T_comma};
-        if (accept(';')) return {loc_, Tok::Tag::T_semicolon};
         if (accept('{')) return {loc_, Tok::Tag::D_brace_l};
         if (accept('}')) return {loc_, Tok::Tag::D_brace_r};
+        if (accept(',')) return {loc_, Tok::Tag::T_comma};
+        if (accept(';')) return {loc_, Tok::Tag::T_semicolon};
 
         if (accept('-')) {
             if (accept('>')) return {loc_, Tok::Tag::T_arrow};
             driver_.err({loc_.path, peek_}, "invalid token '-'; did you mean '->'?");
+            continue;
+        }
+
+        if (accept('/')) {
+            if (accept('*')) { // C-style comment
+                eat_comments();
+                continue;
+            }
+            if (accept('/')) { // C++-style comment
+                while (ahead() != fe::utf8::EoF && ahead() != '\n') next();
+                continue;
+            }
+            driver_.err({loc_.path, peek_}, "invalid token '-'; did you mean '/*' or '//'?");
             continue;
         }
 
@@ -44,6 +57,18 @@ Tok Lexer::lex() {
 
         driver_.err({loc_.path, peek_}, "invalid input char: '{}'", (char)ahead());
         next();
+    }
+}
+
+void Lexer::eat_comments() {
+    while (true) {
+        while (ahead() != fe::utf8::EoF && ahead() != '*') next();
+        if (ahead() == fe::utf8::EoF) {
+            driver_.err(loc_, "non-terminated multiline comment");
+            return;
+        }
+        next();
+        if (accept('/')) break;
     }
 }
 

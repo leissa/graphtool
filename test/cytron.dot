@@ -1,3 +1,35 @@
+//  I = 1                           ( 1)    I1 = 1
+//  J = 1                           ( 1)    J1 = 1
+//  K = 1                           ( 1)    K1 = 1
+//  L = 1                           ( 1)    L1 = 1
+//  repeat                          ( 2)    repeat
+//                                  ( 2)        I2 = Φ(I1, I3)
+//                                  ( 2)        J2 = Φ(J1, J4)
+//                                  ( 2)        K2 = Φ(K1, K5)
+//                                  ( 2)        L2 = Φ(L1, L9)
+//      if (P)                      ( 2)        if (P)
+//          then do                 ( 3)            then do
+//              J = I               ( 3)                J3 = I2
+//              if (Q)              ( 3)                if (Q)
+//                  then L = 2      ( 4)                    then L3 = 2
+//                  else L = 3      ( 5)                    else L4 = 3
+//                                  ( 6)                L5 = Φ(L3, L4)
+//              K = K + 1           ( 6)                K3 = K2 + 1
+//          end                     ( 6)            end
+//          else K = K + 2          ( 7)            else K4 = K2 + 2
+//                                  ( 8)        J4 = Φ(J3, J2)
+//                                  ( 8)        K5 = Φ(K3, K4)
+//                                  ( 8)        L6 = Φ(L2, L5)
+//      print(I, J, K, L)           ( 8)        print(I2, J4, K5, L6)
+//      repeat                      ( 9)        repeat
+//                                  ( 9)            L7 = Φ(L6, L9)
+//          if (R)                  ( 9)            if (R)
+//              then L = L + 4      (10)                then L8 = L7 + 4
+//                                  (11)            L9 = Φ(L7, L8)
+//      until (S)                   (11)        until (S)
+//      I = I + 6                   (12)        I3 = I2 + 6
+//  until (T)                       (12)    until (T)
+
 digraph cytron {
     _1 -> _2 -> {_3 _7}
     _3 -> {_4 _5} -> _6

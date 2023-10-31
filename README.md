@@ -59,6 +59,12 @@ s = ','
   | ';'
   | (ID | g) '->' ... '->' (ID | g) (* edge statement *)
 ```
+where
+* `ID` = [`a`-`zA`-`Z`][`a`-`zA`-`Z0`-`9`]*
+
+In addition, GraphTool supports
+* * `/* C-style */` and
+* * `// C++-sytle` comments.
 
 ## Entry \& Exit
 

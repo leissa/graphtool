@@ -20,6 +20,8 @@ public:
     Driver& driver() { return driver_; }
 
 private:
+    void eat_comments();
+
     Driver& driver_;
     fe::SymMap<Tok::Tag> keywords_;
 };
