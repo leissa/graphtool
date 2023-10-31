@@ -56,8 +56,18 @@ int main(int argc, char** argv) {
         if (crit) graph.critical_edge_elimination();
         graph.analyse();
 
-        std::ofstream ofs("out.dot");
-        graph.dump_cfg<0>(ofs);
+        std::ofstream forward(input + ".forward.dot");
+        std::ofstream backward(input + ".backward.dot");
+        std::ofstream dom(input + ".dom_tree.dot");
+        std::ofstream postdom(input + ".postdom_tree.dot");
+        std::ofstream dom_frontiers(input + ".dom_frontiers.dot");
+        std::ofstream postdom_frontiers(input + ".postdom_frontiers.dot");
+        graph.dump_cfg<0>(forward);
+        graph.dump_cfg<1>(backward);
+        graph.dump_dom_tree<0>(dom);
+        graph.dump_dom_tree<1>(postdom);
+        graph.dump_dom_frontiers<0>(dom_frontiers);
+        graph.dump_dom_frontiers<1>(postdom_frontiers);
     } catch (const std::exception& e) {
         std::cerr << "error: " << e.what() << std::endl;
         return EXIT_FAILURE;

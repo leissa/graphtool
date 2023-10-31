@@ -47,6 +47,8 @@ void Graph::analyse() {
     number<1>();
     dom<0>();
     dom<1>();
+    dom_frontiers<0>();
+    dom_frontiers<1>();
 }
 
 /*
@@ -86,18 +88,15 @@ std::pair<size_t, size_t> Graph::Node::number(size_t pre, size_t post) {
 // Cooper et al, 2001. A Simple, Fast Dominance Algorithm. http://www.cs.rice.edu/~keith/EMBED/dom.pdf
 template<size_t mode> void Graph::dom() {
     entry<mode>()->template idom<mode>() = entry<mode>();
-    //idoms_[cfg().entry()] = cfg().entry();
 
     // all idoms different from entry are set to their first found dominating pred
     for (auto node : rpo<mode>() | std::views::drop(1)) {
         for (auto pred : node->template preds<mode>()) {
             if (pred->template rp<mode>() < node->template rp<mode>()) {
                 node->template idom<mode>() = pred;
-                goto outer_loop;
+                break;
             }
         }
-        fe::unreachable();
-outer_loop:;
     }
 
     for (bool todo = true; todo;) {
@@ -129,6 +128,19 @@ Graph::Node* Graph::lca(Node* i, Node* j) {
     return i;
 }
 
+template<size_t mode>
+void Graph::dom_frontiers() {
+    for (auto node : rpo<mode>() | std::views::drop(1)) {
+        const auto& preds = node->template preds<mode>();
+        if (preds.size() > 1) {
+            auto idom = node->template idom<mode>();
+            for (auto pred : preds) {
+                for (auto i = pred; i != idom; i = i->template idom<mode>()) i->template frontier<mode>().emplace(node);
+            }
+        }
+    }
+}
+
 /*
  * output
  */
@@ -146,11 +158,39 @@ void Graph::dump_cfg(std::ostream& os) const {
             os << std::format("\t{} -> {}", node->template dot<mode>(), succ->template dot<mode>()) << sep;
         sep = "\n";
     }
-    os << '}' << std::endl;;
+    os << '}' << std::endl;
+}
+
+template<size_t mode>
+void Graph::dump_dom_tree(std::ostream& os) const {
+    os << std::format("digraph {} {{", name()) << std::endl;
+    for (const char* sep = ""; auto node : rpo<mode>()) {
+        for (auto child : node->template children<mode>())
+            os << std::format("\t{} -> {}", node->template dot<mode>(), child->template dot<mode>()) << sep;
+        sep = "\n";
+    }
+    os << '}' << std::endl;
+}
+
+template<size_t mode>
+void Graph::dump_dom_frontiers(std::ostream& os) const {
+    os << std::format("digraph {} {{", name()) << std::endl;
+    os << "\trankdir=\"BT\"" << std::endl;
+    for (const char* sep = ""; auto node : rpo<mode>()) {
+        for (auto fron : node->template frontier<mode>())
+            os << std::format("\t{} -> {}", node->template dot<mode>(), fron->template dot<mode>()) << sep;
+        sep = "\n";
+    }
+    os << '}' << std::endl;
 }
 
 // instantiate templates
 
 template void Graph::dump_cfg<0>(std::ostream&) const;
+template void Graph::dump_cfg<1>(std::ostream&) const;
+template void Graph::dump_dom_tree<0>(std::ostream&) const;
+template void Graph::dump_dom_tree<1>(std::ostream&) const;
+template void Graph::dump_dom_frontiers<0>(std::ostream&) const;
+template void Graph::dump_dom_frontiers<1>(std::ostream&) const;
 
 } // namespace graphtool

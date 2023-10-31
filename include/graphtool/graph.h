@@ -30,6 +30,8 @@ public:
         template<size_t mode> Node*& idom() { return idom_[mode]; }
         template<size_t mode> const auto& children() const { return children_[mode]; }
         template<size_t mode> auto& children() { return children_[mode]; }
+        template<size_t mode> const auto& frontier() const { return frontier_[mode]; }
+        template<size_t mode> auto& frontier() { return frontier_[mode]; }
 
         void link(Node* succ) {
             this->succs_.emplace(succ);
@@ -54,6 +56,7 @@ public:
         std::array<Order, 2> order_;
         std::array<Node*, 2> idom_;
         std::array<std::vector<Node*>, 2> children_;
+        std::array<NodeSet, 2> frontier_;
 
         friend class Graph;
     };
@@ -108,6 +111,7 @@ public:
 private:
     template<size_t> void number();
     template<size_t> void dom();
+    template<size_t> void dom_frontiers();
     template<size_t> Node* lca(Node*, Node*);
 
     fe::Driver& driver_;
