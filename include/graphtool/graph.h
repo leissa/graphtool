@@ -2,6 +2,7 @@
 
 #include <array>
 #include <ostream>
+
 #include <fe/driver.h>
 
 namespace graphtool {
@@ -44,13 +45,14 @@ public:
         std::array<NodeSet, 2> frontier_;
 
         friend class Graph;
-        template<size_t M> friend class BiGraph;
+        template<size_t M>
+        friend class BiGraph;
     };
 
     Graph(const Graph&) = delete;
     Graph(fe::Driver& driver)
         : driver_(driver) {}
-    Graph(Graph&& other)
+    Graph(Graph&& other) noexcept
         : driver_(other.driver_)
         , name_(other.name_)
         , entry_(other.entry_)
@@ -59,7 +61,7 @@ public:
     ~Graph();
 
     Graph& operator=(const Graph&) = delete;
-    Graph& operator=(Graph&&) = delete;
+    Graph& operator=(Graph&&)      = delete;
 
     /// @name Getters
     ///@{
@@ -69,7 +71,7 @@ public:
     ///@}
 
     void set_name(Sym name) { name_ = name; }
-    Node* node(Sym name);
+    Node* node(Sym name); ///< Construct Graph::Node without duplicates.
     void critical_edge_elimination();
 
     friend void swap(Graph& g1, Graph& g2) noexcept {
@@ -91,7 +93,8 @@ private:
     fe::SymMap<Node*> nodes_;
     std::array<std::vector<Node*>, 2> rpo_;
 
-    template<size_t M> friend class BiGraph;
+    template<size_t M>
+    friend class BiGraph;
 };
 
 template<size_t M>
@@ -110,9 +113,9 @@ public:
     ///@{
     static std::string dot(Node*);
     static auto& order(Node* n) { return n->order_[M]; }
-    static size_t pre(Node* n)  { return order(n).pre; }
+    static size_t pre(Node* n) { return order(n).pre; }
     static size_t post(Node* n) { return order(n).post; }
-    static size_t rp(Node* n)   { return order(n).rp; }
+    static size_t rp(Node* n) { return order(n).rp; }
     static Node*& idom(Node* n) { return n->idom_[M]; }
     static auto& children(Node* n) { return n->children_[M]; }
     static auto& frontier(Node* n) { return n->frontier_[M]; }

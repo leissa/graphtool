@@ -62,3 +62,7 @@ s = ','
 ## Entry \& Exit
 
 The first node mentioned is considered the *entry*, the last one the *exit.
+
+## Caveats
+
+Right now, GraphTool can't handle graphs with unreachable nodes.

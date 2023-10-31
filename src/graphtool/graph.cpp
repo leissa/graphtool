@@ -12,7 +12,7 @@ Graph::Node* Graph::node(Sym name) {
     if (auto i = nodes_.find(name); i != nodes_.end()) return i->second;
     auto node = new Node(name);
     if (entry_ == nullptr) entry_ = node;
-    exit_ = node;
+    exit_         = node;
     auto [_, ins] = nodes_.emplace(name, node);
     assert_unused(ins);
     return node;
@@ -32,7 +32,7 @@ void Graph::critical_edge_elimination() {
 
     for (auto [v, w] : crit) {
         auto name = driver().sym(v->name().str() + "." + w->name().str());
-        auto x = node(name);
+        auto x    = node(name);
         v->succs_.erase(w);
         w->preds_.erase(v);
         v->link(x);
@@ -46,15 +46,16 @@ void Graph::critical_edge_elimination() {
  * number
  */
 
-template<size_t M> void BiGraph<M>::number() {
+template<size_t M>
+void BiGraph<M>::number() {
     auto [n, m] = number(entry(), 0, 0);
     assert(n == m);
     rpo().resize(n);
     for (auto [_, node] : graph_.nodes()) {
-        auto& ord = order(node);
-        if (ord.post != Not_Visited) {
-            size_t i = n - ord.post - 1;
-            ord.rp = i;
+        auto& order = this->order(node);
+        if (order.post != Not_Visited) {
+            size_t i = n - order.post - 1;
+            order.rp = i;
             rpo()[i] = node;
         }
     }
@@ -62,11 +63,11 @@ template<size_t M> void BiGraph<M>::number() {
 
 template<size_t M>
 std::pair<size_t, size_t> BiGraph<M>::number(Node* n, size_t pre, size_t post) {
-    auto& ord = order(n);
-    if (ord.pre == Not_Visited) {
-        ord.pre = pre++;
+    auto& order = BiGraph<M>::order(n);
+    if (order.pre == Not_Visited) {
+        order.pre = pre++;
         for (auto succ : succs(n)) std::tie(pre, post) = number(succ, pre, post);
-        ord.post = post++;
+        order.post = post++;
     }
     return {pre, post};
 }
@@ -76,7 +77,8 @@ std::pair<size_t, size_t> BiGraph<M>::number(Node* n, size_t pre, size_t post) {
  */
 
 // Cooper et al, 2001. A Simple, Fast Dominance Algorithm. http://www.cs.rice.edu/~keith/EMBED/dom.pdf
-template<size_t M> void BiGraph<M>::dom() {
+template<size_t M>
+void BiGraph<M>::dom() {
     idom(entry()) = entry();
 
     // all idoms different from entry are set to their first found dominating pred
@@ -99,7 +101,7 @@ template<size_t M> void BiGraph<M>::dom() {
             assert(new_idom);
             if (idom(n) != new_idom) {
                 idom(n) = new_idom;
-                todo = true;
+                todo    = true;
             }
         }
     }
