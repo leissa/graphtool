@@ -48,8 +48,8 @@ Tok Lexer::lex() {
         }
 
         // lex identifier or keyword
-        if (accept_if<Append::Lower>([](int i) { return i == '_' || isalpha(i); })) {
-            while (accept_if<Append::Lower>([](int i) { return i == '_' || isalpha(i) || isdigit(i); })) {}
+        if (accept_if([](int i) { return i == '_' || isalpha(i); })) {
+            while (accept_if([](int i) { return i == '_' || isalpha(i) || isdigit(i); })) {}
             auto sym = driver_.sym(str_);
             if (auto i = keywords_.find(sym); i != keywords_.end()) return {loc_, i->second}; // keyword
             return {loc_, sym};                                                               // identifier
