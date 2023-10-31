@@ -1,5 +1,7 @@
 #include "graphtool/graph.h"
 
+#include <ranges>
+
 namespace graphtool {
 
 Graph::~Graph() {
@@ -21,9 +23,9 @@ void Graph::critical_edge_elimination() {
     auto x = exit_; // we create new nodes below - so memorize proper exit ...
 
     for (auto [_, node] : nodes_) {
-        if (node->succs().size() > 1) {
-            for (auto succ : node->succs()) {
-                if (succ->preds().size() > 1) crit.emplace_back(node, succ);
+        if (node->succs<0>().size() > 1) {
+            for (auto succ : node->succs<0>()) {
+                if (succ->preds<0>().size() > 1) crit.emplace_back(node, succ);
             }
         }
     }
@@ -40,17 +42,19 @@ void Graph::critical_edge_elimination() {
     exit_ = x; // ... and restore again
 }
 
+void Graph::analyse() {
+    number<0>();
+    number<1>();
+    dom<0>();
+    dom<1>();
+}
+
 /*
  * number
  */
 
-void Graph::number() {
-    number_<0>();
-    number_<1>();
-}
-
 template<size_t mode>
-void Graph::number_() {
+void Graph::number() {
     auto [n, m] = entry<mode>()->template number<mode>(0, 0);
     assert(n == m);
     rpo_[mode].resize(n);
@@ -79,16 +83,16 @@ std::pair<size_t, size_t> Graph::Node::number(size_t pre, size_t post) {
  * dom
  */
 
-#if 0
-template<size_t mode> void Graph::dom_() {
-    // Cooper et al, 2001. A Simple, Fast Dominance Algorithm. http://www.cs.rice.edu/~keith/EMBED/dom.pdf
-    idoms_[cfg().entry()] = cfg().entry();
+// Cooper et al, 2001. A Simple, Fast Dominance Algorithm. http://www.cs.rice.edu/~keith/EMBED/dom.pdf
+template<size_t mode> void Graph::dom() {
+    entry<mode>()->template idom<mode>() = entry<mode>();
+    //idoms_[cfg().entry()] = cfg().entry();
 
     // all idoms different from entry are set to their first found dominating pred
-    for (auto n : cfg().reverse_post_order().skip_front()) {
-        for (auto pred : cfg().preds(n)) {
-            if (cfg().index(pred) < cfg().index(n)) {
-                idoms_[n] = pred;
+    for (auto node : rpo<mode>() | std::views::drop(1)) {
+        for (auto pred : node->template preds<mode>()) {
+            if (pred->template rp<mode>() < node->template rp<mode>()) {
+                node->template idom<mode>() = pred;
                 goto outer_loop;
             }
         }
@@ -99,40 +103,54 @@ outer_loop:;
     for (bool todo = true; todo;) {
         todo = false;
 
-        for (auto n : cfg().reverse_post_order().skip_front()) {
-            const CFNode* new_idom = nullptr;
-            for (auto pred : cfg().preds(n)) new_idom = new_idom ? least_common_ancestor(new_idom, pred) : pred;
+        for (auto node : rpo<mode>() | std::views::drop(1)) {
+            Node* new_idom = nullptr;
+            for (auto pred : node->template preds<mode>()) new_idom = new_idom ? lca<mode>(new_idom, pred) : pred;
 
             assert(new_idom);
-            if (idom(n) != new_idom) {
-                idoms_[n] = new_idom;
-                todo      = true;
+            if (node->template idom<mode>() != new_idom) {
+                node->template idom<mode>() = new_idom;
+                todo = true;
             }
         }
     }
 
-    for (auto n : cfg().reverse_post_order().skip_front()) children_[idom(n)].push_back(n);
+    for (auto node : rpo<mode>() | std::views::drop(1))
+        node->template idom<mode>()->template children<mode>().emplace_back(node);
 }
-#endif
+
+template<size_t mode>
+Graph::Node* Graph::lca(Node* i, Node* j) {
+    assert(i && j);
+    while (i->template rp<mode>() != j->template rp<mode>()) {
+        while (i->template rp<mode>() < j->template rp<mode>()) j = j->template idom<mode>();
+        while (j->template rp<mode>() < i->template rp<mode>()) i = i->template idom<mode>();
+    }
+    return i;
+}
 
 /*
- * ostream
+ * output
  */
 
-std::ostream& operator<<(std::ostream& os, const Graph::Node& node) {
-    return os << std::format("\t\"{}\\n[{}|{}|{}]\\n[{}|{}|{}]\"", node.name(),
-            node.pre<0>(), node.post<0>(), node.rp<0>(),
-            node.pre<1>(), node.post<1>(), node.rp<1>());
+template<size_t mode>
+std::string Graph::Node::dot() const {
+    return std::format("\t\"{}\\n[{}|{}|{}]\"", name(), pre<mode>(), post<mode>(), rp<mode>());
 }
 
-std::ostream& operator<<(std::ostream& os, const Graph& graph) {
-    os << std::format("digraph {} {{", graph.name()) << std::endl;
-    for (const char* sep = ""; auto node : graph.rpo<0>()) {
-        for (auto succ : node->succs())
-            os << std::format("\t{} -> {}", *node, *succ) << sep;
+template<size_t mode>
+void Graph::dump_cfg(std::ostream& os) const {
+    os << std::format("digraph {} {{", name()) << std::endl;
+    for (const char* sep = ""; auto node : rpo<mode>()) {
+        for (auto succ : node->template succs<mode>())
+            os << std::format("\t{} -> {}", node->template dot<mode>(), succ->template dot<mode>()) << sep;
         sep = "\n";
     }
-    return os << '}' << std::endl;;
+    os << '}' << std::endl;;
 }
+
+// instantiate templates
+
+template void Graph::dump_cfg<0>(std::ostream&) const;
 
 } // namespace graphtool

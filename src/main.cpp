@@ -54,10 +54,10 @@ int main(int argc, char** argv) {
         }
 
         if (crit) graph.critical_edge_elimination();
-        graph.number();
+        graph.analyse();
 
         std::ofstream ofs("out.dot");
-        ofs << graph;
+        graph.dump_cfg<0>(ofs);
     } catch (const std::exception& e) {
         std::cerr << "error: " << e.what() << std::endl;
         return EXIT_FAILURE;

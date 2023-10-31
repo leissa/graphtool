@@ -22,10 +22,12 @@ public:
 
     public:
         Sym name() const { return name_; }
+        template<size_t mode> std::string dot() const;
         template<size_t mode> size_t pre()  const { return order_[mode].pre; }
         template<size_t mode> size_t post() const { return order_[mode].post; }
         template<size_t mode> size_t rp()   const { return order_[mode].rp; }
-        template<size_t mode> Node* idom()  const { return idom_[mode]; }
+        template<size_t mode> Node* idom() const { return idom_[mode]; }
+        template<size_t mode> Node*& idom() { return idom_[mode]; }
         template<size_t mode> const auto& children() const { return children_[mode]; }
         template<size_t mode> auto& children() { return children_[mode]; }
 
@@ -34,13 +36,11 @@ public:
             succ->preds_.emplace(this);
         }
 
-        template<size_t mode = 0> const auto& preds() const { return mode == 0 ? preds_ : succs_; }
-        template<size_t mode = 0> const auto& succs() const { return mode == 0 ? succs_ : preds_; }
-
-        friend std::ostream& operator<<(std::ostream&, const Node&);
+        template<size_t mode> const auto& preds() const { return mode == 0 ? preds_ : succs_; }
+        template<size_t mode> const auto& succs() const { return mode == 0 ? succs_ : preds_; }
 
     private:
-        template<size_t mode> std::pair<size_t, size_t> number(size_t, size_t);
+        template<size_t> std::pair<size_t, size_t> number(size_t, size_t);
 
         Sym name_;
         NodeSet preds_, succs_;
@@ -85,10 +85,14 @@ public:
     void set_name(Sym name) { name_ = name; }
     Node* node(Sym name);
     void critical_edge_elimination();
-    void number();
-    void dom();
+    void analyse();
 
-    friend std::ostream& operator<<(std::ostream&, const Graph&);
+    /// @name Output
+    ///@{
+    template<size_t> void dump_cfg(std::ostream&) const;
+    template<size_t> void dump_dom_tree(std::ostream&) const;
+    template<size_t> void dump_dom_frontiers(std::ostream&) const;
+    ///@}
 
     friend void swap(Graph& g1, Graph& g2) noexcept {
         using std::swap;
@@ -102,8 +106,9 @@ public:
     }
 
 private:
-    template<size_t mode> void number_();
-    template<size_t mode> void dom_();
+    template<size_t> void number();
+    template<size_t> void dom();
+    template<size_t> Node* lca(Node*, Node*);
 
     fe::Driver& driver_;
     Sym name_;
@@ -114,5 +119,3 @@ private:
 };
 
 } // namespace graphtool
-
-template<> struct std::formatter<graphtool::Graph::Node> : fe::ostream_formatter {};
