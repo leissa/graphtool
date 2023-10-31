@@ -34,4 +34,4 @@ jobs:
         run: cmake --build ${{github.workspace}}/build -v
 
       - name: Test
-        run: ${{github.workspace}}/build/bin/graphtool ${{github.workspace}}/test/test.dot
+        run: ${{github.workspace}}/build/bin/graphtool ${{github.workspace}}/test/cytron.dot

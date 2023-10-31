@@ -35,4 +35,4 @@ jobs:
 
       - name: Test
         shell: cmd
-        run: ${{github.workspace}}/build/bin/graphtool.exe ${{github.workspace}}/test/test.dot
+        run: ${{github.workspace}}/build/bin/graphtool.exe ${{github.workspace}}/test/cytron.dot
