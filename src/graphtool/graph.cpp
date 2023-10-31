@@ -147,29 +147,31 @@ void Graph::dom_frontiers() {
 
 template<size_t mode>
 std::string Graph::Node::dot() const {
-    return std::format("\t\"{}\\n[{}|{}|{}]\"", name(), pre<mode>(), post<mode>(), rp<mode>());
+    return std::format("\"{}\\n[{}|{}|{}]\"", name(), pre<mode>(), post<mode>(), rp<mode>());
 }
 
 template<size_t mode>
 void Graph::dump_cfg(std::ostream& os) const {
     os << std::format("digraph {} {{", name()) << std::endl;
     for (const char* sep = ""; auto node : rpo<mode>()) {
-        for (auto succ : node->template succs<mode>())
-            os << std::format("\t{} -> {}", node->template dot<mode>(), succ->template dot<mode>()) << sep;
-        sep = "\n";
+        for (auto succ : node->template succs<mode>()) {
+            os << sep << std::format("\t{} -> {}", node->template dot<mode>(), succ->template dot<mode>());
+            sep = "\n";
+        }
     }
-    os << '}' << std::endl;
+    os << std::endl << '}' << std::endl;
 }
 
 template<size_t mode>
 void Graph::dump_dom_tree(std::ostream& os) const {
     os << std::format("digraph {} {{", name()) << std::endl;
     for (const char* sep = ""; auto node : rpo<mode>()) {
-        for (auto child : node->template children<mode>())
-            os << std::format("\t{} -> {}", node->template dot<mode>(), child->template dot<mode>()) << sep;
-        sep = "\n";
+        for (auto child : node->template children<mode>()) {
+            os << sep << std::format("\t{} -> {}", node->template dot<mode>(), child->template dot<mode>());
+            sep = "\n";
+        }
     }
-    os << '}' << std::endl;
+    os << std::endl << '}' << std::endl;
 }
 
 template<size_t mode>
@@ -177,11 +179,12 @@ void Graph::dump_dom_frontiers(std::ostream& os) const {
     os << std::format("digraph {} {{", name()) << std::endl;
     os << "\trankdir=\"BT\"" << std::endl;
     for (const char* sep = ""; auto node : rpo<mode>()) {
-        for (auto fron : node->template frontier<mode>())
-            os << std::format("\t{} -> {}", node->template dot<mode>(), fron->template dot<mode>()) << sep;
-        sep = "\n";
+        for (auto fron : node->template frontier<mode>()) {
+            os << sep << std::format("\t{} -> {}", node->template dot<mode>(), fron->template dot<mode>());
+            sep = "\n";
+        }
     }
-    os << '}' << std::endl;
+    os << std::endl << '}' << std::endl;
 }
 
 // instantiate templates
