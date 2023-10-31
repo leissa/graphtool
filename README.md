@@ -14,13 +14,13 @@ A small tool that reads a subset from [Graphviz'](https://graphviz.org) [DOT lan
 
 ```
 USAGE:
-  graphtool [-?|-h|--help] [-v|--version] [<file>]
+  graphtool [-?|-h|--help] [-v|--version] [-d|--dump] [-e|--eval] [<file>]
 
 Display usage information.
-
 OPTIONS, ARGUMENTS:
   -?, -h, --help
   -v, --version           Display version info and exit.
+  -c, --crit              Eliminate critical edges.
   <file>                  Input file.
 ```
 

@@ -1,0 +1,4 @@
+digraph crit {
+    A -> {B Z}
+    B -> Z
+}

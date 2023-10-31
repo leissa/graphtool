@@ -17,7 +17,7 @@ int main(int argc, char** argv) {
                                     "Display usage information.\n"
                                     ""
                                     "OPTIONS, ARGUMENTS:\n"
-                                    "  -?, -h, --help"
+                                    "  -?, -h, --help\n"
                                     "  -v, --version           Display version info and exit.\n"
                                     "  -c, --crit              Eliminate critical edges.\n"
                                     "  <file>                  Input file.\n";
