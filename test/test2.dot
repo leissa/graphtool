@@ -1,0 +1,13 @@
+digraph test2 {
+    A -> B
+    B -> {C K}
+    C -> {K D}
+    D -> {E F}
+    E -> {F G}
+    F -> B
+    G -> H
+    H -> {I K}
+    I -> {J K}
+    J -> B
+    K
+}
