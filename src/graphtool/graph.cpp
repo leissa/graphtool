@@ -9,13 +9,12 @@ Graph::~Graph() {
 }
 
 Graph::Node* Graph::node(Sym name) {
-    if (auto i = nodes_.find(name); i != nodes_.end()) return i->second;
+    if (auto i = nodes_.find(name); i != nodes_.end()) return exit_ = i->second;
     auto node = new Node(name);
     if (entry_ == nullptr) entry_ = node;
-    exit_         = node;
     auto [_, ins] = nodes_.emplace(name, node);
     assert_unused(ins);
-    return node;
+    return exit_ = node;
 }
 
 void Graph::critical_edge_elimination() {
