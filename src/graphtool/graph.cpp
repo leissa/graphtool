@@ -23,9 +23,9 @@ void Graph::critical_edge_elimination() {
     auto x = exit_; // we create new nodes below - so memorize proper exit ...
 
     for (auto [_, node] : nodes_) {
-        if (node->succs<0>().size() > 1) {
-            for (auto succ : node->succs<0>()) {
-                if (succ->preds<0>().size() > 1) crit.emplace_back(node, succ);
+        if (node->succs_.size() > 1) {
+            for (auto succ : node->succs_) {
+                if (succ->preds_.size() > 1) crit.emplace_back(node, succ);
             }
         }
     }
@@ -42,41 +42,31 @@ void Graph::critical_edge_elimination() {
     exit_ = x; // ... and restore again
 }
 
-void Graph::analyse() {
-    number<0>();
-    number<1>();
-    dom<0>();
-    dom<1>();
-    dom_frontiers<0>();
-    dom_frontiers<1>();
-}
-
 /*
  * number
  */
 
-template<size_t mode>
-void Graph::number() {
-    auto [n, m] = entry<mode>()->template number<mode>(0, 0);
+template<size_t M> void BiGraph<M>::number() {
+    auto [n, m] = number(entry(), 0, 0);
     assert(n == m);
-    rpo_[mode].resize(n);
-    for (auto [_, node] : nodes()) {
-        auto& order = node->order_[mode];
-        if (order.post != Graph::Node::Not_Visited) {
-            size_t i = n - order.post - 1;
-            order.rp = i;
-            rpo_[mode][i] = node;
+    rpo().resize(n);
+    for (auto [_, node] : graph_.nodes()) {
+        auto& ord = order(node);
+        if (ord.post != Not_Visited) {
+            size_t i = n - ord.post - 1;
+            ord.rp = i;
+            rpo()[i] = node;
         }
     }
 }
 
-template<size_t mode>
-std::pair<size_t, size_t> Graph::Node::number(size_t pre, size_t post) {
-    auto& order = order_[mode];
-    if (order.pre == Not_Visited) {
-        order.pre = pre++;
-        for (auto succ : succs<mode>()) std::tie(pre, post) = succ->template number<mode>(pre, post);
-        order.post = post++;
+template<size_t M>
+std::pair<size_t, size_t> BiGraph<M>::number(Node* n, size_t pre, size_t post) {
+    auto& ord = order(n);
+    if (ord.pre == Not_Visited) {
+        ord.pre = pre++;
+        for (auto succ : succs(n)) std::tie(pre, post) = number(succ, pre, post);
+        ord.post = post++;
     }
     return {pre, post};
 }
@@ -86,14 +76,14 @@ std::pair<size_t, size_t> Graph::Node::number(size_t pre, size_t post) {
  */
 
 // Cooper et al, 2001. A Simple, Fast Dominance Algorithm. http://www.cs.rice.edu/~keith/EMBED/dom.pdf
-template<size_t mode> void Graph::dom() {
-    entry<mode>()->template idom<mode>() = entry<mode>();
+template<size_t M> void BiGraph<M>::dom() {
+    idom(entry()) = entry();
 
     // all idoms different from entry are set to their first found dominating pred
-    for (auto node : rpo<mode>() | std::views::drop(1)) {
-        for (auto pred : node->template preds<mode>()) {
-            if (pred->template rp<mode>() < node->template rp<mode>()) {
-                node->template idom<mode>() = pred;
+    for (auto n : rpo() | std::views::drop(1)) {
+        for (auto pred : preds(n)) {
+            if (rp(pred) < rp(n)) {
+                idom(n) = pred;
                 break;
             }
         }
@@ -102,40 +92,39 @@ template<size_t mode> void Graph::dom() {
     for (bool todo = true; todo;) {
         todo = false;
 
-        for (auto node : rpo<mode>() | std::views::drop(1)) {
+        for (auto n : rpo() | std::views::drop(1)) {
             Node* new_idom = nullptr;
-            for (auto pred : node->template preds<mode>()) new_idom = new_idom ? lca<mode>(new_idom, pred) : pred;
+            for (auto pred : preds(n)) new_idom = new_idom ? lca(new_idom, pred) : pred;
 
             assert(new_idom);
-            if (node->template idom<mode>() != new_idom) {
-                node->template idom<mode>() = new_idom;
+            if (idom(n) != new_idom) {
+                idom(n) = new_idom;
                 todo = true;
             }
         }
     }
 
-    for (auto node : rpo<mode>() | std::views::drop(1))
-        node->template idom<mode>()->template children<mode>().emplace_back(node);
+    for (auto n : rpo() | std::views::drop(1)) children(idom(n)).emplace_back(n);
 }
 
-template<size_t mode>
-Graph::Node* Graph::lca(Node* i, Node* j) {
+template<size_t M>
+Graph::Node* BiGraph<M>::lca(Node* i, Node* j) {
     assert(i && j);
-    while (i->template rp<mode>() != j->template rp<mode>()) {
-        while (i->template rp<mode>() < j->template rp<mode>()) j = j->template idom<mode>();
-        while (j->template rp<mode>() < i->template rp<mode>()) i = i->template idom<mode>();
+    while (rp(i) != rp(j)) {
+        while (rp(i) < rp(j)) j = idom(j);
+        while (rp(j) < rp(i)) i = idom(i);
     }
     return i;
 }
 
-template<size_t mode>
-void Graph::dom_frontiers() {
-    for (auto node : rpo<mode>() | std::views::drop(1)) {
-        const auto& preds = node->template preds<mode>();
+template<size_t M>
+void BiGraph<M>::dom_frontiers() {
+    for (auto n : rpo() | std::views::drop(1)) {
+        const auto& preds = this->preds(n);
         if (preds.size() > 1) {
-            auto idom = node->template idom<mode>();
+            auto idom = this->idom(n);
             for (auto pred : preds) {
-                for (auto i = pred; i != idom; i = i->template idom<mode>()) i->template frontier<mode>().emplace(node);
+                for (auto i = pred; i != idom; i = this->idom(i)) frontier(i).emplace(n);
             }
         }
     }
@@ -145,42 +134,42 @@ void Graph::dom_frontiers() {
  * output
  */
 
-template<size_t mode>
-std::string Graph::Node::dot() const {
-    return std::format("\"{}\\n[{}|{}|{}]\"", name(), pre<mode>(), post<mode>(), rp<mode>());
+template<size_t M>
+std::string BiGraph<M>::dot(Node* n) {
+    return std::format("\"{}\\n[{}|{}|{}]\"", n->name(), pre(n), post(n), rp(n));
 }
 
-template<size_t mode>
-void Graph::dump_cfg(std::ostream& os) const {
+template<size_t M>
+void BiGraph<M>::dump_cfg(std::ostream& os) const {
     os << std::format("digraph {} {{", name()) << std::endl;
-    for (const char* sep = ""; auto node : rpo<mode>()) {
-        for (auto succ : node->template succs<mode>()) {
-            os << sep << std::format("\t{} -> {}", node->template dot<mode>(), succ->template dot<mode>());
+    for (const char* sep = ""; auto n : rpo()) {
+        for (auto succ : succs(n)) {
+            os << sep << std::format("\t{} -> {}", dot(n), dot(succ));
             sep = "\n";
         }
     }
     os << std::endl << '}' << std::endl;
 }
 
-template<size_t mode>
-void Graph::dump_dom_tree(std::ostream& os) const {
+template<size_t M>
+void BiGraph<M>::dump_dom_tree(std::ostream& os) const {
     os << std::format("digraph {} {{", name()) << std::endl;
-    for (const char* sep = ""; auto node : rpo<mode>()) {
-        for (auto child : node->template children<mode>()) {
-            os << sep << std::format("\t{} -> {}", node->template dot<mode>(), child->template dot<mode>());
+    for (const char* sep = ""; auto n : rpo()) {
+        for (auto child : children(n)) {
+            os << sep << std::format("\t{} -> {}", dot(n), dot(child));
             sep = "\n";
         }
     }
     os << std::endl << '}' << std::endl;
 }
 
-template<size_t mode>
-void Graph::dump_dom_frontiers(std::ostream& os) const {
+template<size_t M>
+void BiGraph<M>::dump_dom_frontiers(std::ostream& os) const {
     os << std::format("digraph {} {{", name()) << std::endl;
     os << "\trankdir=\"BT\"" << std::endl;
-    for (const char* sep = ""; auto node : rpo<mode>()) {
-        for (auto fron : node->template frontier<mode>()) {
-            os << sep << std::format("\t{} -> {}", node->template dot<mode>(), fron->template dot<mode>());
+    for (const char* sep = ""; auto n : rpo()) {
+        for (auto fron : frontier(n)) {
+            os << sep << std::format("\t{} -> {}", dot(n), dot(fron));
             sep = "\n";
         }
     }
@@ -189,11 +178,7 @@ void Graph::dump_dom_frontiers(std::ostream& os) const {
 
 // instantiate templates
 
-template void Graph::dump_cfg<0>(std::ostream&) const;
-template void Graph::dump_cfg<1>(std::ostream&) const;
-template void Graph::dump_dom_tree<0>(std::ostream&) const;
-template void Graph::dump_dom_tree<1>(std::ostream&) const;
-template void Graph::dump_dom_frontiers<0>(std::ostream&) const;
-template void Graph::dump_dom_frontiers<1>(std::ostream&) const;
+template class BiGraph<0>;
+template class BiGraph<1>;
 
 } // namespace graphtool

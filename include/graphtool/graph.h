@@ -6,6 +6,8 @@
 
 namespace graphtool {
 
+static constexpr auto Not_Visited = size_t(-1);
+
 using fe::Sym;
 
 class Graph {
@@ -15,35 +17,18 @@ public:
 
     class Node {
     private:
-        static constexpr auto Not_Visited = size_t(-1);
-
         Node(Sym name)
             : name_(name) {}
 
     public:
         Sym name() const { return name_; }
-        template<size_t mode> std::string dot() const;
-        template<size_t mode> size_t pre()  const { return order_[mode].pre; }
-        template<size_t mode> size_t post() const { return order_[mode].post; }
-        template<size_t mode> size_t rp()   const { return order_[mode].rp; }
-        template<size_t mode> Node* idom() const { return idom_[mode]; }
-        template<size_t mode> Node*& idom() { return idom_[mode]; }
-        template<size_t mode> const auto& children() const { return children_[mode]; }
-        template<size_t mode> auto& children() { return children_[mode]; }
-        template<size_t mode> const auto& frontier() const { return frontier_[mode]; }
-        template<size_t mode> auto& frontier() { return frontier_[mode]; }
 
         void link(Node* succ) {
             this->succs_.emplace(succ);
             succ->preds_.emplace(this);
         }
 
-        template<size_t mode> const auto& preds() const { return mode == 0 ? preds_ : succs_; }
-        template<size_t mode> const auto& succs() const { return mode == 0 ? succs_ : preds_; }
-
     private:
-        template<size_t> std::pair<size_t, size_t> number(size_t, size_t);
-
         Sym name_;
         NodeSet preds_, succs_;
 
@@ -59,6 +44,7 @@ public:
         std::array<NodeSet, 2> frontier_;
 
         friend class Graph;
+        template<size_t M> friend class BiGraph;
     };
 
     Graph(const Graph&) = delete;
@@ -80,22 +66,11 @@ public:
     fe::Driver& driver() { return driver_; }
     Sym name() const { return name_; }
     const auto& nodes() const { return nodes_; }
-    template<size_t mode> Node* entry() const { return mode == 0 ? entry_ : exit_; }
-    template<size_t mode> Node* exit() const { return mode == 0 ? exit_ : exit_; }
-    template<size_t mode> const auto& rpo() const { return rpo_[mode]; }
     ///@}
 
     void set_name(Sym name) { name_ = name; }
     Node* node(Sym name);
     void critical_edge_elimination();
-    void analyse();
-
-    /// @name Output
-    ///@{
-    template<size_t> void dump_cfg(std::ostream&) const;
-    template<size_t> void dump_dom_tree(std::ostream&) const;
-    template<size_t> void dump_dom_frontiers(std::ostream&) const;
-    ///@}
 
     friend void swap(Graph& g1, Graph& g2) noexcept {
         using std::swap;
@@ -109,17 +84,66 @@ public:
     }
 
 private:
-    template<size_t> void number();
-    template<size_t> void dom();
-    template<size_t> void dom_frontiers();
-    template<size_t> Node* lca(Node*, Node*);
-
     fe::Driver& driver_;
     Sym name_;
     Node* entry_ = nullptr;
     Node* exit_  = nullptr;
     fe::SymMap<Node*> nodes_;
     std::array<std::vector<Node*>, 2> rpo_;
+
+    template<size_t M> friend class BiGraph;
+};
+
+template<size_t M>
+class BiGraph {
+public:
+    using Node = Graph::Node;
+
+    BiGraph(Graph& graph)
+        : graph_(graph) {
+        number();
+        dom();
+        dom_frontiers();
+    }
+
+    /// @name Node Wrappers
+    ///@{
+    static std::string dot(Node*);
+    static auto& order(Node* n) { return n->order_[M]; }
+    static size_t pre(Node* n)  { return order(n).pre; }
+    static size_t post(Node* n) { return order(n).post; }
+    static size_t rp(Node* n)   { return order(n).rp; }
+    static Node*& idom(Node* n) { return n->idom_[M]; }
+    static auto& children(Node* n) { return n->children_[M]; }
+    static auto& frontier(Node* n) { return n->frontier_[M]; }
+    static const auto& preds(Node* n) { return M == 0 ? n->preds_ : n->succs_; }
+    static const auto& succs(Node* n) { return M == 0 ? n->succs_ : n->preds_; }
+    static std::pair<size_t, size_t> number(Node*, size_t, size_t);
+    ///@}
+
+    /// @name Getters
+    ///@{
+    Sym name() const { return graph_.name(); }
+    Node* entry() const { return M == 0 ? graph_.entry_ : graph_.exit_; }
+    Node* exit() const { return M == 0 ? graph_.exit_ : graph_.entry_; }
+    auto& rpo() { return graph_.rpo_[M]; }
+    const auto& rpo() const { return graph_.rpo_[M]; }
+    ///@}
+
+    /// @name Output
+    ///@{
+    void dump_cfg(std::ostream&) const;
+    void dump_dom_tree(std::ostream&) const;
+    void dump_dom_frontiers(std::ostream&) const;
+    ///@}
+
+private:
+    void number();
+    void dom();
+    void dom_frontiers();
+    Node* lca(Node*, Node*);
+
+    Graph& graph_;
 };
 
 } // namespace graphtool

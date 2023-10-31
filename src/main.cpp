@@ -54,7 +54,8 @@ int main(int argc, char** argv) {
         }
 
         if (crit) graph.critical_edge_elimination();
-        graph.analyse();
+        graphtool::BiGraph<0> fw(graph);
+        graphtool::BiGraph<1> bw(graph);
 
         std::ofstream forward(input + ".forward.dot");
         std::ofstream backward(input + ".backward.dot");
@@ -62,12 +63,12 @@ int main(int argc, char** argv) {
         std::ofstream postdom(input + ".postdom_tree.dot");
         std::ofstream dom_frontiers(input + ".dom_frontiers.dot");
         std::ofstream postdom_frontiers(input + ".postdom_frontiers.dot");
-        graph.dump_cfg<0>(forward);
-        graph.dump_cfg<1>(backward);
-        graph.dump_dom_tree<0>(dom);
-        graph.dump_dom_tree<1>(postdom);
-        graph.dump_dom_frontiers<0>(dom_frontiers);
-        graph.dump_dom_frontiers<1>(postdom_frontiers);
+        fw.dump_cfg(forward);
+        bw.dump_cfg(backward);
+        fw.dump_dom_tree(dom);
+        bw.dump_dom_tree(postdom);
+        fw.dump_dom_frontiers(dom_frontiers);
+        bw.dump_dom_frontiers(postdom_frontiers);
     } catch (const std::exception& e) {
         std::cerr << "error: " << e.what() << std::endl;
         return EXIT_FAILURE;
