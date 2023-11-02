@@ -69,7 +69,7 @@ In addition, GraphTool supports
 
 ## Entry \& Exit
 
-The first node mentioned is considered the *entry*, the last one the *exit.
+The first node mentioned is considered the *entry*, the last one the *exit*.
 
 ## Caveats
 
