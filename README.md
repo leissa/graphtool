@@ -5,6 +5,7 @@
 ![windows](https://img.shields.io/github/actions/workflow/status/leissa/graphtool/windows.yml?logo=windows&logoColor=white&label=windows&link=https%3A%2F%2Fgithub.com%2Fgraphtool%2Fleissa%2Factions%2Fworkflows%2Fwindows.yml)
 
 A small tool that reads a subset from [Graphviz'](https://graphviz.org) [DOT language](https://graphviz.org/doc/info/lang.html) and calculates several [dominance-related](https://en.wikipedia.org/wiki/Dominator_(graph_theory)) properties:
+* pre-, post-, and reverse-post order numbers for the input rooted at the [entry and exit](#entry_exit)
 * dominance tree
 * postdominance tree
 * dominance frontiers
@@ -66,7 +67,7 @@ In addition, GraphTool supports
 * * `/* C-style */` and
 * * `// C++-sytle` comments.
 
-## Entry \& Exit
+## Entry \& Exit (#entry_exit)
 
 The first node mentioned is considered the *entry*, the last one the *exit.
 
