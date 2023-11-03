@@ -1,8 +1,8 @@
 # GraphTool
 
-![linux](https://img.shields.io/github/actions/workflow/status/leissa/graphtool/linux.yml?logo=linux&logoColor=white&label=linux&link=https%3A%2F%2Fgithub.com%2Fleissa%2Fgraphtool%2Factions%2Fworkflows%2Flinux.yml)
-![macos](https://img.shields.io/github/actions/workflow/status/leissa/graphtool/macos.yml?logo=apple&logoColor=white&label=macos&link=https%3A%2F%2Fgithub.com%2Fleissa%2Fgraphtool%2Factions%2Fworkflows%2Fmacos.yml)
-![windows](https://img.shields.io/github/actions/workflow/status/leissa/graphtool/windows.yml?logo=windows&logoColor=white&label=windows&link=https%3A%2F%2Fgithub.com%2Fgraphtool%2Fleissa%2Factions%2Fworkflows%2Fwindows.yml)
+[![linux](https://img.shields.io/github/actions/workflow/status/leissa/graphtool/linux.yml?logo=linux&logoColor=white&label=linux&link=https%3A%2F%2Fgithub.com%2Fleissa%2Fgraphtool%2Factions%2Fworkflows%2Flinux.yml)](https://github.com/leissa/graphtool/actions/workflows/linux.yml)
+[![macos](https://img.shields.io/github/actions/workflow/status/leissa/graphtool/macos.yml?logo=apple&logoColor=white&label=macos&link=https%3A%2F%2Fgithub.com%2Fleissa%2Fgraphtool%2Factions%2Fworkflows%2Fmacos.yml)](https://github.com/leissa/graphtool/actions/workflows/macos.yml)
+[![windows](https://img.shields.io/github/actions/workflow/status/leissa/graphtool/windows.yml?logo=windows&logoColor=white&label=windows&link=https%3A%2F%2Fgithub.com%2Fgraphtool%2Fleissa%2Factions%2Fworkflows%2Fwindows.yml)](https://github.com/leissa/graphtool/actions/workflows/windows.yml)
 
 A small tool that reads a subset from [Graphviz'](https://graphviz.org) [DOT language](https://graphviz.org/doc/info/lang.html) and calculates several [dominance-related](https://en.wikipedia.org/wiki/Dominator_(graph_theory)) properties:
 * pre-, post-, and reverse-post order numbers for the input rooted at the [entry and exit](#entry--exit)
