@@ -39,13 +39,12 @@ git clone --recurse-submodules https://github.com/leissa/graphtool.git
 Then, build with:
 ```sh
 cd graphtool
-mkdir build
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug
 cmake --build build -j $(nproc)
 ```
 For a `Release` build simply use `-DCMAKE_BUILD_TYPE=Release`.
 
-Invoke the interpreter like so:
+Invoke the GraphTool like so:
 ```sh
 ./build/bin/graphtool test/test.dot
 ```
