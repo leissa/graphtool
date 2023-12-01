@@ -27,7 +27,7 @@ void Parser::syntax_err(Tag tag, std::string_view ctxt) {
 
 Graph Parser::parse_graph() {
     expect(Tag::K_digraph, "graph");
-    if (auto tok = accept(Tok::Tag::V_sym)) graph_.set_name(tok->sym());
+    if (auto tok = accept(Tok::Tag::V_sym)) graph_.set_name(tok.sym());
     parse_sub_graph("graph");
     expect(Tag::EoF, "graph");
 
@@ -37,7 +37,7 @@ Graph Parser::parse_graph() {
 Graph::NodeSet Parser::parse_sub_graph(std::string_view ctxt) {
     Graph::NodeSet nodes;
     if (auto tok = accept(Tok::Tag::V_sym)) {
-        nodes.emplace(graph_.node(tok->sym()));
+        nodes.emplace(graph_.node(tok.sym()));
     } else if (accept(Tag::D_brace_l)) {
         parse_stmt_list(nodes);
         expect(Tag::D_brace_r, "subgraph");
