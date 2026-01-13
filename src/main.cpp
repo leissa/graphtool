@@ -12,7 +12,7 @@ int main(int argc, char** argv) {
     try {
         static const auto version = "graphtool 0.1\n";
         static const auto usage   = "USAGE:\n"
-                                    "  graphtool [-?|-h|--help] [-v|--version] [-d|--dump] [-e|--eval] [<file>]\n"
+                                    "  graphtool [-?|-h|--help] [-v|--version] [<file>]\n"
                                     "\n"
                                     "Display usage information.\n"
                                     ""

@@ -2,6 +2,7 @@
 
 #include <array>
 #include <ostream>
+#include <vector>
 
 #include <fe/driver.h>
 
