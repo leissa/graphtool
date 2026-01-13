@@ -1,0 +1,16 @@
+digraph test3 {
+    A -> B
+    B -> C
+    C -> {D K}
+    D -> {E F}
+    E -> {F G}
+    F -> B
+    G -> H
+    H -> I
+    I -> J
+    J -> B
+
+    B -> K
+    H -> K
+    I -> K
+}
