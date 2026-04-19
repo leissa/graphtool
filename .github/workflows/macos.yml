@@ -8,7 +8,7 @@ on:
 jobs:
   build-and-test:
     name: Build and test ${{matrix.build-type}} mode
-    runs-on: macos-latest
+    runs-on: macos-15
     strategy:
       matrix:
         build-type: [Debug, Release]
@@ -19,16 +19,8 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Install LLVM/Clang
-        run: brew install llvm@16
-
       - name: Configure
-        run: |
-          CC="/usr/local/opt/llvm@16/bin/clang" \
-          CXX="/usr/local/opt/llvm@16/bin/clang++" \
-          CXXFLAGS="-stdlib=libc++ -fexperimental-library" \
-          LDFLAGS="-L/usr/local/opt/llvm@16/lib/c++ -Wl,-rpath,/usr/local/opt/llvm@16/lib/c++" \
-          cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{matrix.build-type}}
+        run: cmake -S ${{github.workspace}} -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{matrix.build-type}} -DBUILD_TESTING=ON
 
       - name: Build
         run: cmake --build ${{github.workspace}}/build -v
