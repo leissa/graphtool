@@ -33,5 +33,5 @@ jobs:
       - name: Build
         run: cmake --build ${{github.workspace}}/build -v
 
-      - name: Run
-        run: ${{github.workspace}}/build/bin/graphtool test/cytron.dot
+      - name: Test
+        run: ctest --test-dir ${{github.workspace}}/build --output-on-failure --no-tests=error

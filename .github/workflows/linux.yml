@@ -38,29 +38,12 @@ jobs:
       - name: Build
         run: cmake --build ${{github.workspace}}/build -v
 
-      # Valgrind covers every input, not just the well-formed ones -- the error paths must not leak
-      # either. A malformed input exits non-zero by design, so --error-exitcode cannot be the
-      # verdict; the log is. Demanding a "0 errors" summary rather than testing for errors also
-      # fails closed if Valgrind dies before it can report anything.
-      - name: Run under Valgrind
-        run: |
-          log=${RUNNER_TEMP}/valgrind.log
-          status=0
-          check() {
-              valgrind --leak-check=full --error-exitcode=1 --log-file="$log" \
-                       ${{github.workspace}}/build/bin/graphtool "$@" > /dev/null 2>&1 || true
-              if ! grep -q "ERROR SUMMARY: 0 errors" "$log"; then
-                  echo "::error::Valgrind reported errors for: graphtool $*"
-                  cat "$log"
-                  status=1
-              fi
-          }
-          # test/unreachable.dot is a known-broken input -- see the caveat in README.md.
-          for f in test/*.dot; do
-              [[ $f == test/unreachable.dot ]] && continue
-              check "$f"; check "$f" -c
-          done
-          exit $status
+      - name: Test
+        run: ctest --test-dir ${{github.workspace}}/build --output-on-failure --no-tests=error
+
+      # The same cases once more, but under Valgrind: the error paths must not leak either.
+      - name: Test under Valgrind
+        run: test/run.sh --valgrind --exe ${{github.workspace}}/build/bin/graphtool
 
   sanitize:
     name: ASan+LSan+UBSan
@@ -91,18 +74,12 @@ jobs:
       - name: Build
         run: cmake --build ${{github.workspace}}/build -v
 
-      - name: Run
-        run: |
-          # test/unreachable.dot is a known-broken input -- see the caveat in README.md.
-          for f in test/*.dot; do
-              [[ $f == test/unreachable.dot ]] && continue
-              ${{github.workspace}}/build/bin/graphtool "$f"    > /dev/null 2>&1 || true
-              ${{github.workspace}}/build/bin/graphtool "$f" -c > /dev/null 2>&1 || true
-          done
+      - name: Test
+        run: ctest --test-dir ${{github.workspace}}/build --output-on-failure --no-tests=error
 
-      # -fno-sanitize-recover=all aborts on the first report, but a malformed input is *expected* to
-      # exit non-zero, so an abort in one of them would pass unnoticed. log_path (see the job env)
-      # routes every report to a file instead of stderr; the existence of such a file is the verdict.
+      # -fno-sanitize-recover=all aborts on the first report, which `ctest` already turns into a
+      # failed case -- but the report itself would be buried in that case's output. log_path (see
+      # the job env) routes every report to a file instead of stderr and this step prints them all.
       - name: Check for sanitizer reports
         if: always()
         run: |

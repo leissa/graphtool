@@ -69,6 +69,24 @@ Invoke the GraphTool like so:
 ./build/bin/graphtool test/test.dot
 ```
 
+## Testing
+
+`test/run.sh` is GraphTool's test suite.
+Every input in `test/` yields two cases - `<name>` and `<name>-c` (the same input with `-c`) - and each case runs GraphTool in `build/test/<case>/` and diffs all six results against the blessed copies `test/golden/<case>.<suffix>.dot`:
+```sh
+test/run.sh                  # run all cases
+test/run.sh cytron cytron-c  # run only these two
+test/run.sh --valgrind       # additionally demand a clean Valgrind report
+test/run.sh --bless          # accept the current results as the new golden files
+```
+CMake registers one [CTest](https://cmake.org/cmake/help/latest/manual/ctest.1.html) per case - unless you configure with `-DBUILD_TESTING=OFF` - so the same suite also runs as:
+```sh
+make -C build test                               # or: ninja -C build test
+ctest --test-dir build --output-on-failure       # if you want to see why a case failed
+```
+This is exactly what CI does, too.
+`test/unreachable.dot` is skipped; see [Caveats](#caveats).
+
 ## Grammar
 
 ```ebnf

@@ -1,7 +1,6 @@
 #pragma once
 
 #include <fe/parser.h>
-#include <fe/restore.h>
 
 #include "graphtool/driver.h"
 #include "graphtool/graph.h"
@@ -25,14 +24,8 @@ private:
     void parse_stmt_list(Graph::NodeSet&);
     void parse_edge_stmt(Graph::NodeSet&);
 
-    using Super::syntax_err;
-
-    /// As fe::Parser::syntax_err but a missing `}` also gets a note pointing back at its `{`.
-    fe::Error& syntax_err(Tok::Tag, fe::Cite);
-
     Graph graph_;
     Lexer lexer_;
-    Loc brace_l_; ///< The `{` currently being parsed; a missing `}` gets a note pointing back at it.
 
     friend Super;
 };

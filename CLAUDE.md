@@ -22,9 +22,21 @@ Requires CMake 3.29 and C++23 (CI builds with gcc-15 on Linux, Apple clang on ma
 in `build/bin/graphtool`; run it as `./build/bin/graphtool test/cytron.dot` (`-c` eliminates critical edges first, and
 the `--loc-style`/`--no-snippet`/`--gutter`/`--max-rows`/`--max-errors`/`--werror` switches tune the diagnostics).
 
-There is no test suite. CI builds every platform in Debug and Release and runs the binary over `test/*.dot`, on Linux
-additionally under Valgrind and under ASan+LSan+UBSan. `test/unreachable.dot` is a known-broken input - GraphTool
-cannot handle unreachable nodes yet - and the CI loops skip it.
+## Tests
+
+`test/run.sh` is the whole suite and the only thing CI runs: every input in `test/` becomes two golden-file cases,
+`<name>` and `<name>-c` (the same input with `-c`), each of which copies its input into `build/test/<case>/` - the
+build tree rather than the source tree, and `--out` moves it elsewhere - runs GraphTool there and diffs all six
+results against the flat golden files `test/golden/<case>.<suffix>.dot`. `--bless` regenerates those golden files -
+read the diff before committing it, because a bless turns a regression into the new expectation. The skip list lives
+in the script's `skip`, not in the workflows: `test/unreachable.dot` is a known-broken input - GraphTool cannot handle
+unreachable nodes yet - and every runner skips it alike.
+
+`CMakeLists.txt` asks `test/run.sh --list` at configure time and registers one CTest per case, so `make test` (or
+`ctest --test-dir build --output-on-failure`) runs the same script; `-DBUILD_TESTING=OFF` or a missing `bash` drops
+the tests. Because that list is baked in at configure time, a new input in `test/` re-runs CMake via a
+`CONFIGURE_DEPENDS` glob. CI builds every platform in Debug and Release and runs `ctest`, on Linux additionally
+`test/run.sh --valgrind` and a build under ASan+LSan+UBSan.
 
 ## Architecture
 
@@ -49,9 +61,9 @@ Classic pipeline, one class per stage, all deriving from FE's CRTP base classes:
   not throw; they accumulate in the `Driver`'s `fe::Error`, and `main.cpp` calls `driver.error().ack()` afterwards,
   which throws an `fe::Error::Bail` if anything was collected - so the analysis only ever sees a well-formed graph.
   `ack` must be called while the `Driver` is still alive, because every `Loc` in the `Error` points into its `SrcMap`.
-  A subgraph anchors its `}` (`fe::Parser::Anchor`) so a stray one is discarded by `recover` rather than swallowed, and
-  a missing one gets a located note pointing back at the `{` that `parse_sub_graph` remembers in `brace_l_` via an
-  `fe::Restore`.
+  A subgraph anchors its `}` (`fe::Parser::ScopedAnchor`) so a stray one is discarded by `recover` rather than
+  swallowed; the anchor is handed the `{` that opened the subgraph, which is what FE's `syntax_err` notes when the
+  `}` never comes - GraphTool writes no diagnostic of its own for it.
 - **`include/graphtool/graph.h`** + **`src/graphtool/graph.cpp`** - `Graph` owns the nodes; `BiGraph<M>` is the same
   graph read forwards (`M == 0`) or backwards (`M == 1`), which is what makes dominance and postdominance one
   algorithm. Every per-direction datum on a `Node` is a two-element array indexed by `M`. `BiGraph` is explicitly

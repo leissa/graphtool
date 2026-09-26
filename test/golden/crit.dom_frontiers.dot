@@ -1,0 +1,4 @@
+digraph crit {
+	rankdir="BT"
+	"B\n[1|1|1]" -> "Z\n[2|0|2]"
+}

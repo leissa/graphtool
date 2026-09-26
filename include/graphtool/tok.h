@@ -46,7 +46,7 @@ public:
     };
     // clang-format on
 
-    Tok() {}
+    constexpr Tok() {}
     Tok(Loc loc, Tag tag)
         : loc_(loc)
         , tag_(tag) {}
@@ -56,7 +56,7 @@ public:
         , sym_(sym) {}
 
     Loc loc() const { return loc_; }
-    Tag tag() const { return tag_; }
+    constexpr Tag tag() const { return tag_; }
     bool isa(Tag tag) const { return tag == tag_; }
     bool isa_key() const { return tag_ != Tag::Nil && (int)tag_ <= Num_Keys; }
     explicit operator bool() const { return tag_ != Tag::Nil; }

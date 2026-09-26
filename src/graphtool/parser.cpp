@@ -10,13 +10,6 @@ Parser::Parser(Driver& driver, const fe::Src& src)
     init();
 }
 
-fe::Error& Parser::syntax_err(Tag tag, fe::Cite ctxt) {
-    auto& err = Super::syntax_err(tag, ctxt);
-    // The note drops itself again if brace_l_ is already covered by the error's own snippet.
-    if (tag == Tag::D_brace_r && brace_l_) err.n(brace_l_, "unmatched `{}` opened here", Tok::tag2str(Tag::D_brace_l));
-    return err;
-}
-
 Graph Parser::parse_graph() {
     expect(Tag::K_digraph, "graph");
     if (auto tok = accept(Tag::V_sym)) graph_.set_name(tok.sym());
@@ -33,8 +26,7 @@ Graph::NodeSet Parser::parse_sub_graph(fe::Cite ctxt) {
     if (auto tok = accept(Tag::V_sym)) {
         nodes.emplace(graph_.node(tok.sym()));
     } else if (auto brace_l = accept(Tag::D_brace_l)) {
-        auto restore = fe::Restore(brace_l_, brace_l.loc());
-        auto _       = this->anchor(Tag::D_brace_r);
+        auto _ = this->anchor(brace_l, Tag::D_brace_r);
         parse_stmt_list(nodes);
         expect(Tag::D_brace_r, "subgraph");
     } else {
