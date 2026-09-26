@@ -3,34 +3,112 @@ name: linux
 on:
   push:
   pull_request:
-    branches: [ main ]
+    branches: [main]
+
+concurrency:
+  group: ${{github.workflow}}-${{github.ref}}
+  cancel-in-progress: true
 
 jobs:
   build-and-test:
-    name: Build and test ${{matrix.build-type}} mode
-    runs-on: ubuntu-latest
+    name: gcc-15 ${{matrix.build-type}}
+    runs-on: ubuntu-26.04
     strategy:
+      fail-fast: false
       matrix:
         build-type: [Debug, Release]
 
     steps:
       - name: Clone recursively
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           submodules: recursive
 
-      - name: Install newest g++, valgrind
+      - name: Install toolchain, Ninja, and Valgrind
         run: |
-          sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
           sudo apt-get update
-          sudo apt-get install g++-13 valgrind
-          export CXX=g++-13
+          sudo apt-get install -y --no-install-recommends ninja-build valgrind g++-15
 
       - name: Configure
-        run: CXX=g++-13 cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{matrix.build-type}}
+        run: >
+          CC=gcc-15 CXX=g++-15
+          cmake -S ${{github.workspace}} -B ${{github.workspace}}/build -G Ninja
+          -DCMAKE_BUILD_TYPE=${{matrix.build-type}}
 
       - name: Build
         run: cmake --build ${{github.workspace}}/build -v
 
-      - name: Test with Valgrind
-        run: valgrind --error-exitcode=1 --leak-check=full ${{github.workspace}}/build/bin/graphtool ${{github.workspace}}/test/cytron.dot
+      # Valgrind covers every input, not just the well-formed ones -- the error paths must not leak
+      # either. A malformed input exits non-zero by design, so --error-exitcode cannot be the
+      # verdict; the log is. Demanding a "0 errors" summary rather than testing for errors also
+      # fails closed if Valgrind dies before it can report anything.
+      - name: Run under Valgrind
+        run: |
+          log=${RUNNER_TEMP}/valgrind.log
+          status=0
+          check() {
+              valgrind --leak-check=full --error-exitcode=1 --log-file="$log" \
+                       ${{github.workspace}}/build/bin/graphtool "$@" > /dev/null 2>&1 || true
+              if ! grep -q "ERROR SUMMARY: 0 errors" "$log"; then
+                  echo "::error::Valgrind reported errors for: graphtool $*"
+                  cat "$log"
+                  status=1
+              fi
+          }
+          # test/unreachable.dot is a known-broken input -- see the caveat in README.md.
+          for f in test/*.dot; do
+              [[ $f == test/unreachable.dot ]] && continue
+              check "$f"; check "$f" -c
+          done
+          exit $status
+
+  sanitize:
+    name: ASan+LSan+UBSan
+    runs-on: ubuntu-26.04
+    env:
+      ASAN_OPTIONS: halt_on_error=1:abort_on_error=1:detect_stack_use_after_return=1:check_initialization_order=1:strict_init_order=1:detect_leaks=1:log_path=/tmp/sanitizer
+      UBSAN_OPTIONS: halt_on_error=1:print_stacktrace=1:report_error_type=1:log_path=/tmp/sanitizer
+
+    steps:
+      - name: Clone recursively
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install toolchain and Ninja
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends ninja-build clang g++-15
+
+      - name: Configure
+        run: >
+          CC=clang CXX=clang++
+          cmake -S ${{github.workspace}} -B ${{github.workspace}}/build -G Ninja
+          -DCMAKE_BUILD_TYPE=Debug
+          -DCMAKE_CXX_FLAGS="-fsanitize=address,leak,undefined -fno-sanitize-recover=all -fno-omit-frame-pointer"
+          -DCMAKE_EXE_LINKER_FLAGS="-fsanitize=address,leak,undefined"
+
+      - name: Build
+        run: cmake --build ${{github.workspace}}/build -v
+
+      - name: Run
+        run: |
+          # test/unreachable.dot is a known-broken input -- see the caveat in README.md.
+          for f in test/*.dot; do
+              [[ $f == test/unreachable.dot ]] && continue
+              ${{github.workspace}}/build/bin/graphtool "$f"    > /dev/null 2>&1 || true
+              ${{github.workspace}}/build/bin/graphtool "$f" -c > /dev/null 2>&1 || true
+          done
+
+      # -fno-sanitize-recover=all aborts on the first report, but a malformed input is *expected* to
+      # exit non-zero, so an abort in one of them would pass unnoticed. log_path (see the job env)
+      # routes every report to a file instead of stderr; the existence of such a file is the verdict.
+      - name: Check for sanitizer reports
+        if: always()
+        run: |
+          shopt -s nullglob
+          reports=(/tmp/sanitizer.*)
+          if (( ${#reports[@]} != 0 )); then
+              cat "${reports[@]}"
+              exit 1
+          fi

@@ -15,15 +15,34 @@ A small tool that reads a subset from [Graphviz'](https://graphviz.org) [DOT lan
 ## Usage
 
 ```
-USAGE:
-  graphtool [-?|-h|--help] [-v|--version] [-d|--dump] [-e|--eval] [<file>]
+Usage: graphtool [options] <file>
 
-Display usage information.
-OPTIONS, ARGUMENTS:
-  -?, -h, --help
-  -v, --version           Display version info and exit.
-  -c, --crit              Eliminate critical edges.
-  <file>                  Input file.
+Computes dominance-related properties of a Graphviz DOT digraph.
+
+Arguments:
+  <file>                   Input file.
+
+Options:
+  -h, --help               Display this help and exit.
+  -v, --version            Display version info and exit.
+  -c, --crit               Eliminate critical edges.
+
+Diagnostics:
+      --loc-style <style>  How a diagnostic spells out a source location: `full`
+                           (`path:row:col-row:col`), `rowcol` (`path:row:col`),
+                           `row` (`path:row`), or msvc (`path(row,col)`).
+      --no-snippet         Does not render the offending source line and caret
+                           underneath a diagnostic.
+      --gutter <width>     Width of a diagnostic's line-number column. [default:
+                           `5`]
+      --max-rows <num>     Maximum number of rows a diagnostic's snippet renders
+                           before eliding its middle; `0` elides nothing.
+                           [default: `8`]
+      --max-errors <num>   Maximum number of errors to report before dropping
+                           the rest; `0` reports all of them. [default: `0`]
+      --werror             Treats warnings as errors.
+
+The results are written next to `<file>` as `<file>.forward.dot`, `<file>.backward.dot`, `<file>.dom_tree.dot`, `<file>.postdom_tree.dot`, `<file>.dom_frontiers.dot`, and `<file>.postdom_frontiers.dot`.
 ```
 
 ## Building
@@ -43,6 +62,7 @@ cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug
 cmake --build build -j $(nproc)
 ```
 For a `Release` build simply use `-DCMAKE_BUILD_TYPE=Release`.
+GraphTool needs CMake 3.29 and a C++23 compiler; it builds upon [FE](https://leissa.github.io/fe/), which lives in `submodules/fe`.
 
 Invoke the GraphTool like so:
 ```sh
@@ -63,8 +83,8 @@ where
 * `ID` = [`a`-`zA`-`Z`][`a`-`zA`-`Z0`-`9`]*
 
 In addition, GraphTool supports
-* * `/* C-style */` and
-* * `// C++-sytle` comments.
+* `/* C-style */` and
+* `// C++-style` comments.
 
 ## Entry \& Exit
 

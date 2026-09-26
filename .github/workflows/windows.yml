@@ -3,36 +3,37 @@ name: windows
 on:
   push:
   pull_request:
-    branches: [ main ]
+    branches: [main]
+
+concurrency:
+  group: ${{github.workflow}}-${{github.ref}}
+  cancel-in-progress: true
 
 jobs:
   build-and-test:
-    name: Build and test ${{matrix.build-type}} mode
+    name: msvc ${{matrix.build-type}}
     runs-on: windows-2022
     strategy:
+      fail-fast: false
       matrix:
         build-type: [Debug, Release]
 
     steps:
       - name: Clone recursively
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           submodules: recursive
 
+      - name: Set up MSVC
+        uses: ilammy/msvc-dev-cmd@v1
+
       - name: Configure
-        shell: cmd
-        run: |
-          call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
-          set CC=cl.exe
-          set CXX=cl.exe
-          cmake -B ${{github.workspace}}/build -G Ninja -DCMAKE_BUILD_TYPE=${{matrix.build-type}} -DBUILD_TESTING=ON -DFE_BUILD_EXAMPLES=ON
+        run: >
+          cmake -S ${{github.workspace}} -B ${{github.workspace}}/build -G Ninja
+          -DCMAKE_BUILD_TYPE=${{matrix.build-type}}
 
       - name: Build
-        shell: cmd
-        run: |
-          call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
-          cmake --build ${{github.workspace}}/build -v
+        run: cmake --build ${{github.workspace}}/build -v
 
-      - name: Test
-        shell: cmd
-        run: ${{github.workspace}}/build/bin/graphtool.exe ${{github.workspace}}/test/cytron.dot
+      - name: Run
+        run: ${{github.workspace}}/build/bin/graphtool.exe test/cytron.dot

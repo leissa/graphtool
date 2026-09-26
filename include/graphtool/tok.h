@@ -13,13 +13,13 @@ using fe::Pos;
 using fe::Sym;
 
 // clang-format off
-#define LET_KEY(m)            \
+#define GT_KEY(m)             \
     m(K_digraph,   "digraph") \
 
-#define LET_VAL(m)                   \
+#define GT_VAL(m)                    \
     m(V_sym,        "<identifier>")  \
 
-#define LET_TOK(m)                   \
+#define GT_TOK(m)                    \
     m(EoF,          "<end of file>") \
     /* delimiter */                  \
     m(D_brace_l,    "{")             \
@@ -30,7 +30,7 @@ using fe::Sym;
     m(T_semicolon,  ";")             \
 
 #define CODE(t, str) + 1
-constexpr auto Num_Keys = 0 LET_KEY(CODE);
+constexpr auto Num_Keys = 0 GT_KEY(CODE);
 #undef CODE
 
 class Tok {
@@ -39,20 +39,12 @@ public:
     enum class Tag {
         Nil,
 #define CODE(t, _) t,
-        LET_KEY(CODE)
-        LET_VAL(CODE)
-        LET_TOK(CODE)
+        GT_KEY(CODE)
+        GT_VAL(CODE)
+        GT_TOK(CODE)
 #undef CODE
     };
     // clang-format on
-
-    enum class Prec {
-        Error,
-        Bottom,
-        Add,
-        Mul,
-        Unary,
-    };
 
     Tok() {}
     Tok(Loc loc, Tag tag)
@@ -66,7 +58,7 @@ public:
     Loc loc() const { return loc_; }
     Tag tag() const { return tag_; }
     bool isa(Tag tag) const { return tag == tag_; }
-    bool isa_key() const { return (int)tag() < Num_Keys; }
+    bool isa_key() const { return tag_ != Tag::Nil && (int)tag_ <= Num_Keys; }
     explicit operator bool() const { return tag_ != Tag::Nil; }
 
     Sym sym() const {
@@ -74,10 +66,7 @@ public:
         return sym_;
     }
 
-    static std::string_view str(Tok::Tag);
-
-    friend std::ostream& operator<<(std::ostream&, Tag);
-    friend std::ostream& operator<<(std::ostream&, Tok);
+    static std::string_view tag2str(Tok::Tag);
 
 private:
     Loc loc_;
@@ -85,7 +74,12 @@ private:
     Sym sym_;
 };
 
+std::ostream& operator<<(std::ostream&, Tok::Tag);
+std::ostream& operator<<(std::ostream&, Tok);
+
 } // namespace graphtool
 
-template<>
-struct std::formatter<graphtool::Tok> : fe::ostream_formatter {};
+// clang-format off
+template<> struct std::formatter<graphtool::Tok>      : fe::ostream_formatter {};
+template<> struct std::formatter<graphtool::Tok::Tag> : fe::ostream_formatter {};
+// clang-format on

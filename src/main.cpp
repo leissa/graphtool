@@ -1,74 +1,97 @@
-#include <cstring>
-
+#include <format>
 #include <fstream>
 #include <iostream>
-#include <stdexcept>
+
+#include <fe/cli.h>
+#include <fe/error.h>
 
 #include "graphtool/parser.h"
 
-using namespace std::literals;
-
 int main(int argc, char** argv) {
-    try {
-        static const auto version = "graphtool 0.1\n";
-        static const auto usage   = "USAGE:\n"
-                                    "  graphtool [-?|-h|--help] [-v|--version] [<file>]\n"
-                                    "\n"
-                                    "Display usage information.\n"
-                                    ""
-                                    "OPTIONS, ARGUMENTS:\n"
-                                    "  -?, -h, --help\n"
-                                    "  -v, --version           Display version info and exit.\n"
-                                    "  -c, --crit              Eliminate critical edges.\n"
-                                    "  <file>                  Input file.\n";
-        std::string input;
-        bool crit = false;
+    // fe::CodeDiag renders a diagnostic when it is *recorded*, so decide on color up front.
+    fe::term::resolve_mode();
+    graphtool::Driver driver; // outlives the handler below: it writes into the Driver's Diag
 
-        for (int i = 1; i < argc; ++i) {
-            if (argv[i] == "-v"s || argv[i] == "--version"s) {
-                std::cout << version;
-                return EXIT_SUCCESS;
-            } else if (argv[i] == "-?"s || argv[i] == "-h"s || argv[i] == "--help"s) {
-                std::cerr << usage;
-                return EXIT_SUCCESS;
-            } else if (argv[i] == "-c"s || argv[i] == "--crit"s) {
-                crit = true;
-            } else {
-                if (!input.empty()) throw std::invalid_argument("more than one input file given");
-                input = argv[i];
-            }
+    try {
+        bool show_help = false, show_version = false, crit = false;
+        std::string input;
+
+        auto loc_style = [&](const std::string& t) -> std::string {
+            // clang-format off
+            if      (t == "full"  ) driver.diag().loc_style = fe::Loc::Style::Full;
+            else if (t == "rowcol") driver.diag().loc_style = fe::Loc::Style::RowCol;
+            else if (t == "row"   ) driver.diag().loc_style = fe::Loc::Style::Row;
+            else if (t == "msvc"  ) driver.diag().loc_style = fe::Loc::Style::MSVC;
+            else return std::format("'{}' is not a location style", t);
+            // clang-format on
+            return {};
+        };
+
+        // clang-format off
+        auto cli = fe::Cli("graphtool", "Computes dominance-related properties of a Graphviz DOT digraph.")
+            .help(show_help)
+            .opt(show_version           ,          "-v", "--version"   , "Display version info and exit.")
+            .opt(crit                   ,          "-c", "--crit"      , "Eliminate critical edges.")
+            .grp("Diagnostics")
+            .opt(loc_style              , "style", ""  , "--loc-style" , "How a diagnostic spells out a source location: `full` (`path:row:col-row:col`), `rowcol` (`path:row:col`), `row` (`path:row`), or msvc (`path(row,col)`).")
+            .opt(driver.diag().no_snippet,         ""  , "--no-snippet", "Does not render the offending source line and caret underneath a diagnostic.")
+            .opt(driver.diag().gutter   , "width", ""  , "--gutter"    , "Width of a diagnostic's line-number column.")
+            .opt(driver.diag().max_rows , "num"  , ""  , "--max-rows"  , "Maximum number of rows a diagnostic's snippet renders before eliding its middle; `0` elides nothing.")
+            .opt(driver.diag().max_errors,"num"  , ""  , "--max-errors", "Maximum number of errors to report before dropping the rest; `0` reports all of them.")
+            .opt(driver.diag().werror   ,          ""  , "--werror"    , "Treats warnings as errors.")
+            .arg(input, "file", "Input file.")
+            .epilog("The results are written next to `<file>` as `<file>.forward.dot`, `<file>.backward.dot`, `<file>.dom_tree.dot`, `<file>.postdom_tree.dot`, `<file>.dom_frontiers.dot`, and `<file>.postdom_frontiers.dot`.");
+        // clang-format on
+
+        if (auto err = cli.parse(argc, argv)) throw std::invalid_argument(*err);
+
+        if (show_help) {
+            std::cerr << cli;
+            return EXIT_SUCCESS;
+        }
+
+        if (show_version) {
+            std::cout << "graphtool " GRAPHTOOL_VERSION " (fe " FE_VERSION ")\n";
+            return EXIT_SUCCESS;
         }
 
         if (input.empty()) throw std::invalid_argument("no input given");
 
-        auto driver = graphtool::Driver();
-        auto path   = std::filesystem::path(input);
-        auto ifs    = std::ifstream(path);
-        if (!ifs) throw std::runtime_error(std::format("cannot read file \"{}\"", input));
-        auto parser = graphtool::Parser(driver, ifs, &path);
+        auto path = std::filesystem::path(input);
+        auto src  = driver.src().add(path).first;
+        if (!src) throw std::runtime_error(std::format("cannot read file \"{}\"", input));
+        auto parser = graphtool::Parser(driver, *src);
         auto graph  = parser.parse_graph();
 
-        if (auto num = driver.num_errors()) {
-            std::cerr << num << " error(s) encountered" << std::endl;
-            return EXIT_FAILURE;
-        }
+        driver.error().ack(); // throws what it collected; merely reports the warnings
 
         if (crit) graph.critical_edge_elimination();
-        graphtool::BiGraph<0> fw(graph);
-        graphtool::BiGraph<1> bw(graph);
+        auto fw = graphtool::BiGraph<0>(graph);
+        auto bw = graphtool::BiGraph<1>(graph);
 
-        std::ofstream forward(input + ".forward.dot");
-        std::ofstream backward(input + ".backward.dot");
-        std::ofstream dom(input + ".dom_tree.dot");
-        std::ofstream postdom(input + ".postdom_tree.dot");
-        std::ofstream dom_frontiers(input + ".dom_frontiers.dot");
-        std::ofstream postdom_frontiers(input + ".postdom_frontiers.dot");
+        auto out = [&input](const char* suffix) {
+            auto name = input + suffix;
+            auto ofs  = std::ofstream(name);
+            if (!ofs) throw std::runtime_error(std::format("cannot write file \"{}\"", name));
+            return ofs;
+        };
+
+        auto forward           = out(".forward.dot");
+        auto backward          = out(".backward.dot");
+        auto dom               = out(".dom_tree.dot");
+        auto postdom           = out(".postdom_tree.dot");
+        auto dom_frontiers     = out(".dom_frontiers.dot");
+        auto postdom_frontiers = out(".postdom_frontiers.dot");
+
         fw.dump_cfg(forward);
         bw.dump_cfg(backward);
         fw.dump_dom_tree(dom);
         bw.dump_dom_tree(postdom);
         fw.dump_dom_frontiers(dom_frontiers);
         bw.dump_dom_frontiers(postdom_frontiers);
+    } catch (const fe::Error::Bail& bail) {
+        std::cerr << bail; // already rendered, so the Driver it came from may be long gone
+        return EXIT_FAILURE;
     } catch (const std::exception& e) {
         std::cerr << "error: " << e.what() << std::endl;
         return EXIT_FAILURE;

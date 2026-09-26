@@ -2,9 +2,10 @@
 
 #include <array>
 #include <ostream>
-#include <vector>
 
+#include <ankerl/unordered_dense.h>
 #include <fe/driver.h>
+#include <fe/vector.h>
 
 namespace graphtool {
 
@@ -15,7 +16,7 @@ using fe::Sym;
 class Graph {
 public:
     class Node;
-    using NodeSet = std::unordered_set<Node*>;
+    using NodeSet = ankerl::unordered_dense::set<Node*>;
 
     class Node {
     private:
@@ -42,7 +43,7 @@ public:
 
         std::array<Order, 2> order_;
         std::array<Node*, 2> idom_;
-        std::array<std::vector<Node*>, 2> children_;
+        std::array<fe::Vector<Node*>, 2> children_;
         std::array<NodeSet, 2> frontier_;
 
         friend class Graph;
@@ -58,7 +59,8 @@ public:
         , name_(other.name_)
         , entry_(other.entry_)
         , exit_(other.exit_)
-        , nodes_(std::move(other.nodes_)) {}
+        , nodes_(std::move(other.nodes_))
+        , rpo_(std::move(other.rpo_)) {}
     ~Graph();
 
     Graph& operator=(const Graph&) = delete;
@@ -75,24 +77,13 @@ public:
     Node* node(Sym name); ///< Construct Graph::Node without duplicates.
     void critical_edge_elimination();
 
-    friend void swap(Graph& g1, Graph& g2) noexcept {
-        using std::swap;
-        // clang-format off
-        swap(g1.driver_, g2.driver_);
-        swap(g1.name_,   g2.name_);
-        swap(g1.entry_,  g2.entry_);
-        swap(g1.exit_,   g2.exit_);
-        swap(g1.nodes_,  g2.nodes_);
-        // clang-format on
-    }
-
 private:
     fe::Driver& driver_;
     Sym name_;
     Node* entry_ = nullptr;
     Node* exit_  = nullptr;
     fe::SymMap<Node*> nodes_;
-    std::array<std::vector<Node*>, 2> rpo_;
+    std::array<fe::Vector<Node*>, 2> rpo_;
 
     template<size_t M>
     friend class BiGraph;

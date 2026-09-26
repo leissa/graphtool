@@ -2,9 +2,6 @@
 
 #include <cassert>
 
-#include <istream>
-#include <unordered_map>
-
 #include <fe/lexer.h>
 
 #include "graphtool/driver.h"
@@ -14,16 +11,16 @@ namespace graphtool {
 
 class Lexer : public fe::Lexer<1, Lexer> {
 public:
-    Lexer(Driver&, std::istream&, const std::filesystem::path*);
+    Lexer(Driver&, const fe::Src&);
 
-    Tok lex(); ///< Get next Tok in stream.
-    Driver& driver() { return driver_; }
+    Tok lex();                           ///< Get next Tok in stream.
+    Driver& driver() { return driver_; } ///< fe::Lexer's default diagnostics go to its Driver::error.
 
 private:
     void eat_comments();
 
     Driver& driver_;
-    fe::SymMap<Tok::Tag> keywords_;
+    const Keys& keys_; ///< The Driver's keywords - see Driver::keys.
 };
 
 } // namespace graphtool

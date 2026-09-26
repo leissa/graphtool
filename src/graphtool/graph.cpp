@@ -2,6 +2,8 @@
 
 #include <ranges>
 
+#include <fe/assert.h>
+
 namespace graphtool {
 
 Graph::~Graph() {
@@ -18,7 +20,7 @@ Graph::Node* Graph::node(Sym name) {
 }
 
 void Graph::critical_edge_elimination() {
-    std::vector<std::pair<Node*, Node*>> crit;
+    fe::Vector<std::pair<Node*, Node*>> crit;
     auto x = exit_; // we create new nodes below - so memorize proper exit ...
 
     for (auto [_, node] : nodes_) {

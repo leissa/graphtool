@@ -1,0 +1,2 @@
+# Always check out text files with LF, regardless of the platform's core.autocrlf.
+* text=auto eol=lf

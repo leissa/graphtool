@@ -1,0 +1,20 @@
+// int f() {
+//     while (i) {
+//         // bi
+//         while (j) {
+//             // bj
+//         }
+//     }
+//
+//     return ...;
+// }
+
+digraph test {
+    f  -> hi;
+    hi -> bi;
+    bi -> hj;
+    hj -> {bj xj};
+    bj -> hj;
+    xj -> hi;
+    hi -> xi;
+}

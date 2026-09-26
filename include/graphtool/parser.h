@@ -1,6 +1,7 @@
 #pragma once
 
 #include <fe/parser.h>
+#include <fe/restore.h>
 
 #include "graphtool/driver.h"
 #include "graphtool/graph.h"
@@ -9,32 +10,31 @@
 namespace graphtool {
 
 class Parser : public fe::Parser<Tok, Tok::Tag, 1, Parser> {
-public:
-    Parser(Driver&, std::istream&, const std::filesystem::path* = nullptr);
+    using Super = fe::Parser<Tok, Tok::Tag, 1, Parser>;
 
-    Driver& driver() { return lexer_.driver(); }
+public:
+    Parser(Driver&, const fe::Src&);
+
+    Driver& driver() { return lexer_.driver(); } ///< fe::Parser's default diagnostics go to its Driver::error.
     Lexer& lexer() { return lexer_; }
 
     Graph parse_graph();
 
 private:
-    Graph::NodeSet parse_sub_graph(std::string_view ctxt);
+    Graph::NodeSet parse_sub_graph(fe::Cite ctxt);
     void parse_stmt_list(Graph::NodeSet&);
     void parse_edge_stmt(Graph::NodeSet&);
 
-    /// Issue an error message of the form:
-    /// `expected <what>, got '<tok>' while parsing <ctxt>`
-    void err(const std::string& what, const Tok& tok, std::string_view ctxt);
+    using Super::syntax_err;
 
-    /// Same above but uses Parser::ahead() as Tok%en.
-    void err(const std::string& what, std::string_view ctxt) { err(what, ahead(), ctxt); }
-
-    void syntax_err(Tok::Tag tag, std::string_view ctxt);
+    /// As fe::Parser::syntax_err but a missing `}` also gets a note pointing back at its `{`.
+    fe::Error& syntax_err(Tok::Tag, fe::Cite);
 
     Graph graph_;
     Lexer lexer_;
+    Loc brace_l_; ///< The `{` currently being parsed; a missing `}` gets a note pointing back at it.
 
-    friend class fe::Parser<Tok, Tok::Tag, 1, Parser>;
+    friend Super;
 };
 
 } // namespace graphtool

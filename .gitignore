@@ -1,3 +1,12 @@
 .DS_Store
+.cache/
 build*
 vgcore.*
+
+# GraphTool writes its results next to the input file.
+*.dot.forward.dot
+*.dot.backward.dot
+*.dot.dom_tree.dot
+*.dot.postdom_tree.dot
+*.dot.dom_frontiers.dot
+*.dot.postdom_frontiers.dot

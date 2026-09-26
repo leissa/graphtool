@@ -1,24 +1,18 @@
 #include "graphtool/lexer.h"
 
-#include <ranges>
-
-#include <fe/loc.cpp.h>
-#include "fe/utf8.h"
-
-using namespace std::literals;
-
 namespace graphtool {
 
 namespace utf8 = fe::utf8;
 
-Lexer::Lexer(Driver& driver, std::istream& istream, const std::filesystem::path* path)
-    : fe::Lexer<1, Lexer>(istream, path)
-    , driver_(driver) {
-    if (!istream_) throw std::runtime_error("stream is bad");
-#define CODE(t, str) keywords_[driver_.sym(str)] = Tok::Tag::t;
-    LET_KEY(CODE)
-#undef CODE
-}
+namespace {
+bool is_id_start(char32_t c) { return c == '_' || utf8::isalpha(c); }
+bool is_id_cont(char32_t c) { return c == '_' || utf8::isalnum(c); }
+} // namespace
+
+Lexer::Lexer(Driver& driver, const fe::Src& src)
+    : fe::Lexer<1, Lexer>(src)
+    , driver_(driver)
+    , keys_(driver.keys()) {}
 
 Tok Lexer::lex() {
     while (true) {
@@ -26,6 +20,7 @@ Tok Lexer::lex() {
 
         if (accept(utf8::EoF)) return {loc_, Tok::Tag::EoF};
         if (accept(utf8::isspace)) continue;
+        if (recover_utf8()) continue;
         if (accept('{')) return {loc_, Tok::Tag::D_brace_l};
         if (accept('}')) return {loc_, Tok::Tag::D_brace_r};
         if (accept(',')) return {loc_, Tok::Tag::T_comma};
@@ -33,7 +28,7 @@ Tok Lexer::lex() {
 
         if (accept('-')) {
             if (accept('>')) return {loc_, Tok::Tag::T_arrow};
-            driver_.err({loc_.path, peek_}, "invalid token '-'; did you mean '->'?");
+            error().e(loc_, "invalid token `-`").n("did you mean `->`?");
             continue;
         }
 
@@ -43,41 +38,32 @@ Tok Lexer::lex() {
                 continue;
             }
             if (accept('/')) { // C++-style comment
-                while (ahead() != utf8::EoF && ahead() != '\n') next();
+                accept_while_none_of('\n');
                 continue;
             }
-            driver_.err({loc_.path, peek_}, "invalid token '-'; did you mean '/*' or '//'?");
+            error().e(loc_, "invalid token `/`").n("did you mean `/*` or `//`?");
             continue;
         }
 
         // lex identifier or keyword
-        if (accept([](char32_t c) { return c == '_' || utf8::isalpha(c); })) {
-            while (accept([](char32_t c) { return c == '_' || utf8::isalpha(c) || utf8::isdigit(c); })) {}
-            auto sym = driver_.sym(str_);
-            if (auto i = keywords_.find(sym); i != keywords_.end()) return {loc_, i->second}; // keyword
-            return {loc_, sym};                                                               // identifier
+        if (accept(is_id_start)) {
+            accept_while(is_id_cont);
+            auto sym = driver_.sym(view());
+            if (auto tag = keys_.find(sym)) return {loc_, *tag}; // keyword
+            return {loc_, sym};                                  // identifier
         }
 
-        if (accept(utf8::Invalid)) {
-            driver().err(loc_, "invalid UTF-8 character");
-            continue;
-        }
-
-        driver_.err({loc_.path, peek_}, "invalid input char: '{}'", (char)ahead());
-        next();
+        recover_char();
     }
 }
 
 void Lexer::eat_comments() {
-    while (true) {
-        while (ahead() != utf8::EoF && ahead() != '*') next();
-        if (ahead() == utf8::EoF) {
-            driver_.err(loc_, "non-terminated multiline comment");
-            return;
-        }
-        next();
-        if (accept('/')) break;
+    accept_until("*/");
+    if (!accept('*')) {
+        error().e(loc_, "non-terminated multiline comment");
+        return;
     }
+    accept('/');
 }
 
 } // namespace graphtool

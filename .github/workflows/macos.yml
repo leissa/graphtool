@@ -3,27 +3,35 @@ name: macos
 on:
   push:
   pull_request:
-    branches: [ main ]
+    branches: [main]
+
+concurrency:
+  group: ${{github.workflow}}-${{github.ref}}
+  cancel-in-progress: true
 
 jobs:
   build-and-test:
-    name: Build and test ${{matrix.build-type}} mode
+    name: appleclang ${{matrix.build-type}}
     runs-on: macos-15
     strategy:
+      fail-fast: false
       matrix:
         build-type: [Debug, Release]
 
     steps:
       - name: Clone recursively
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           submodules: recursive
 
       - name: Configure
-        run: cmake -S ${{github.workspace}} -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{matrix.build-type}} -DBUILD_TESTING=ON
+        run: >
+          CC=clang CXX=clang++
+          cmake -S ${{github.workspace}} -B ${{github.workspace}}/build -G Ninja
+          -DCMAKE_BUILD_TYPE=${{matrix.build-type}}
 
       - name: Build
         run: cmake --build ${{github.workspace}}/build -v
 
-      - name: Test
-        run: ${{github.workspace}}/build/bin/graphtool ${{github.workspace}}/test/cytron.dot
+      - name: Run
+        run: ${{github.workspace}}/build/bin/graphtool test/cytron.dot
