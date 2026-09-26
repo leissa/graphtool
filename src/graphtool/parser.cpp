@@ -26,7 +26,7 @@ Graph::NodeSet Parser::parse_sub_graph(fe::Cite ctxt) {
     if (auto tok = accept(Tag::V_sym)) {
         nodes.emplace(graph_.node(tok.sym()));
     } else if (auto brace_l = accept(Tag::D_brace_l)) {
-        auto _ = this->anchor(brace_l, Tag::D_brace_r);
+        auto _ = anchor(brace_l, Tag::D_brace_r);
         parse_stmt_list(nodes);
         expect(Tag::D_brace_r, "subgraph");
     } else {
