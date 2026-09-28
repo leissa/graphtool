@@ -14,6 +14,8 @@ int main(int argc, char** argv) {
 
     try {
         bool show_help = false, show_version = false, crit = false;
+        int verbose      = 0;
+        auto inc_verbose = [&](bool) { ++verbose; };
         std::string input;
 
         auto loc_style = [&](const std::string& t) -> std::string {
@@ -32,6 +34,7 @@ int main(int argc, char** argv) {
             .help(show_help)
             .opt(show_version           ,          "-v", "--version"   , "Display version info and exit.")
             .opt(crit                   ,          "-c", "--crit"      , "Eliminate critical edges.")
+            .opt(inc_verbose            , ""     , "-V", "--verbose"   , "Raises the log level from error to warn (unreachable nodes) and info (the chosen exit); repeatable.").cardinality(0, 2)
             .grp("Diagnostics")
             .opt(loc_style              , "style", ""  , "--loc-style" , "How a diagnostic spells out a source location: `full` (`path:row:col-row:col`), `rowcol` (`path:row:col`), `row` (`path:row`), or msvc (`path(row,col)`).")
             .opt(driver.diag().no_snippet,         ""  , "--no-snippet", "Does not render the offending source line and caret underneath a diagnostic.")
@@ -54,6 +57,8 @@ int main(int argc, char** argv) {
             std::cout << "graphtool " GRAPHTOOL_VERSION " (fe " FE_VERSION ")\n";
             return EXIT_SUCCESS;
         }
+
+        driver.log().set(&std::cerr).set((fe::Log::Level)verbose);
 
         if (input.empty()) throw std::invalid_argument("no input given");
 

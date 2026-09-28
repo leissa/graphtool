@@ -29,8 +29,7 @@ the `--loc-style`/`--no-snippet`/`--gutter`/`--max-rows`/`--max-errors`/`--werro
 build tree rather than the source tree, and `--out` moves it elsewhere - runs GraphTool there and diffs all six
 results against the flat golden files `test/golden/<case>.<suffix>.dot`. `--bless` regenerates those golden files -
 read the diff before committing it, because a bless turns a regression into the new expectation. The skip list lives
-in the script's `skip`, not in the workflows: `test/unreachable.dot` is a known-broken input - GraphTool cannot handle
-unreachable nodes yet - and every runner skips it alike.
+in the script's `skip`, not in the workflows, so every runner skips alike; it is empty at the moment.
 
 `CMakeLists.txt` asks `test/run.sh --list` at configure time and registers one CTest per case, so `make test` (or
 `ctest --test-dir build --output-on-failure`) runs the same script; `-DBUILD_TESTING=OFF` or a missing `bash` drops
@@ -49,7 +48,9 @@ Classic pipeline, one class per stage, all deriving from FE's CRTP base classes:
   `SymPool`, the `SrcMap`, the `Diag` and the `Error` from its base and adds the interned keywords. `Driver::keys()` is
   an `fe::SymTab<Tok::Tag, Num_Keys>` - a fixed-capacity `Sym`-keyed table built once in the constructor and borrowed
   by the `Lexer`; intern with `Driver::sym` first, then look up, as `SymTab` hashes the interned pointer and has no
-  heterogeneous lookup.
+  heterogeneous lookup. `Driver::log()` is an `fe::Log` - `main.cpp` points it at `std::cerr` and raises its level from
+  `Error` by one per `-V` - through which `BiGraph::number` reports the chosen exit and every node the entry/exit does
+  not reach, at the `Loc` of the node's first mention (the exit's is its last one, `Graph::exit_loc_`).
 - **Diagnostics** live in the driver: every building block reports into `driver().error()` via `error().e(loc, ...)`,
   and `error().n(...)` adds a note. `fe::Error` puts an `fe::Snippet` source excerpt under every message and renders
   `` `code` `` citations in color, so phrase messages with backticks, not quotes.

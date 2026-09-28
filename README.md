@@ -26,6 +26,8 @@ Options:
   -h, --help               Display this help and exit.
   -v, --version            Display version info and exit.
   -c, --crit               Eliminate critical edges.
+  -V, --verbose            Raises the log level from error to warn (unreachable
+                           nodes) and info (the chosen exit); repeatable.
 
 Diagnostics:
       --loc-style <style>  How a diagnostic spells out a source location: `full`
@@ -85,7 +87,6 @@ make -C build test                               # or: ninja -C build test
 ctest --test-dir build --output-on-failure       # if you want to see why a case failed
 ```
 This is exactly what CI does, too.
-`test/unreachable.dot` is skipped; see [Caveats](#caveats).
 
 ## Grammar
 
@@ -108,6 +109,10 @@ In addition, GraphTool supports
 
 The first node mentioned is considered the *entry*, the last one the *exit*.
 
-## Caveats
-
-Right now, GraphTool can't handle graphs with unreachable nodes.
+A node the entry does not reach takes no part in the forward results (`forward`, `dom_tree`, `dom_frontiers`), and a node that does not reach the exit takes no part in the backward ones (`backward`, `postdom_tree`, `postdom_frontiers`); see `test/unreachable.dot`.
+With `-V`, GraphTool logs each such node to `stderr`, and with `-VV` also the chosen exit:
+```
+I:test/unreachable.dot:9:5-9:7: exit is `_12`
+W:test/unreachable.dot:6:5-6:6: `_9` is unreachable from entry `_1`
+W:test/unreachable.dot:3:5-3:6: `_1` does not reach exit `_12`
+```

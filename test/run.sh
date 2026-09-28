@@ -70,11 +70,11 @@ while [ $# -gt 0 ]; do
     esac
 done
 
-# `test/unreachable.dot` crashes GraphTool -- see the caveat in README.md. Enumerating the skips
-# here rather than in the CI workflows is the point of this script: every runner skips the same set.
+# Inputs GraphTool is known to choke on, as `<name>) return 0;;` lines -- none at the moment.
+# Enumerating the skips here rather than in the CI workflows is the point of this script: every
+# runner skips the same set.
 skip() {
     case ${1%-c} in
-        unreachable) return 0;;
     esac
     return 1
 }

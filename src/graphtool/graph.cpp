@@ -10,9 +10,10 @@ Graph::~Graph() {
     for (auto [_, node] : nodes_) delete node;
 }
 
-Graph::Node* Graph::node(Sym name) {
+Graph::Node* Graph::node(Sym name, fe::Loc loc) {
+    if (loc) exit_loc_ = loc;
     if (auto i = nodes_.find(name); i != nodes_.end()) return exit_ = i->second;
-    auto node = new Node(name);
+    auto node = new Node(name, loc);
     if (entry_ == nullptr) entry_ = node;
     auto [_, ins] = nodes_.emplace(name, node);
     assert_unused(ins);
@@ -60,6 +61,18 @@ void BiGraph<M>::number() {
             rpo()[i] = node;
         }
     }
+
+    auto& log = graph_.driver().log();
+    if constexpr (M == 0) log.log(fe::Log::Level::I, graph_.exit_loc_, "exit is `{}`", exit()->name());
+    for (auto [_, node] : graph_.nodes()) {
+        // A node without a Loc stems from critical_edge_elimination and is reached iff its pred is.
+        if (reached(node) || !node->loc()) continue;
+        if constexpr (M == 0)
+            log.log(fe::Log::Level::W, node->loc(), "`{}` is unreachable from entry `{}`", node->name(),
+                    entry()->name());
+        else
+            log.log(fe::Log::Level::W, node->loc(), "`{}` does not reach exit `{}`", node->name(), entry()->name());
+    }
 }
 
 template<size_t M>
@@ -78,6 +91,7 @@ std::pair<size_t, size_t> BiGraph<M>::number(Node* n, size_t pre, size_t post) {
  */
 
 // Cooper et al, 2001. A Simple, Fast Dominance Algorithm. http://www.cs.rice.edu/~keith/EMBED/dom.pdf
+// Only the nodes reachable from entry() take part: rpo() holds nothing else, and a pred that is not reached is ignored.
 template<size_t M>
 void BiGraph<M>::dom() {
     idom(entry()) = entry();
@@ -85,7 +99,7 @@ void BiGraph<M>::dom() {
     // all idoms different from entry are set to their first found dominating pred
     for (auto n : rpo() | std::views::drop(1)) {
         for (auto pred : preds(n)) {
-            if (rp(pred) < rp(n)) {
+            if (reached(pred) && rp(pred) < rp(n)) {
                 idom(n) = pred;
                 break;
             }
@@ -97,7 +111,8 @@ void BiGraph<M>::dom() {
 
         for (auto n : rpo() | std::views::drop(1)) {
             Node* new_idom = nullptr;
-            for (auto pred : preds(n)) new_idom = new_idom ? lca(new_idom, pred) : pred;
+            for (auto pred : preds(n))
+                if (reached(pred)) new_idom = new_idom ? lca(new_idom, pred) : pred;
 
             assert(new_idom);
             if (idom(n) != new_idom) {
@@ -123,12 +138,10 @@ Graph::Node* BiGraph<M>::lca(Node* i, Node* j) {
 template<size_t M>
 void BiGraph<M>::dom_frontiers() {
     for (auto n : rpo() | std::views::drop(1)) {
-        const auto& preds = this->preds(n);
-        if (preds.size() > 1) {
-            auto idom = this->idom(n);
-            for (auto pred : preds) {
-                for (auto i = pred; i != idom; i = this->idom(i)) frontier(i).emplace(n);
-            }
+        auto idom = this->idom(n);
+        for (auto pred : preds(n)) {
+            if (!reached(pred)) continue;
+            for (auto i = pred; i != idom; i = this->idom(i)) frontier(i).emplace(n);
         }
     }
 }

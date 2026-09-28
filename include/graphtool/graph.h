@@ -4,8 +4,9 @@
 #include <ostream>
 
 #include <ankerl/unordered_dense.h>
-#include <fe/driver.h>
 #include <fe/vector.h>
+
+#include "graphtool/driver.h"
 
 namespace graphtool {
 
@@ -20,11 +21,13 @@ public:
 
     class Node {
     private:
-        Node(Sym name)
-            : name_(name) {}
+        Node(Sym name, fe::Loc loc)
+            : name_(name)
+            , loc_(loc) {}
 
     public:
         Sym name() const { return name_; }
+        fe::Loc loc() const { return loc_; } ///< Where this Node is mentioned first.
 
         void link(Node* succ) {
             this->succs_.emplace(succ);
@@ -33,6 +36,7 @@ public:
 
     private:
         Sym name_;
+        fe::Loc loc_;
         NodeSet preds_, succs_;
 
         struct Order {
@@ -42,7 +46,7 @@ public:
         };
 
         std::array<Order, 2> order_;
-        std::array<Node*, 2> idom_;
+        std::array<Node*, 2> idom_ = {};
         std::array<fe::Vector<Node*>, 2> children_;
         std::array<NodeSet, 2> frontier_;
 
@@ -52,13 +56,14 @@ public:
     };
 
     Graph(const Graph&) = delete;
-    Graph(fe::Driver& driver)
+    Graph(Driver& driver)
         : driver_(driver) {}
     Graph(Graph&& other) noexcept
         : driver_(other.driver_)
         , name_(other.name_)
         , entry_(other.entry_)
         , exit_(other.exit_)
+        , exit_loc_(other.exit_loc_)
         , nodes_(std::move(other.nodes_))
         , rpo_(std::move(other.rpo_)) {}
     ~Graph();
@@ -68,20 +73,21 @@ public:
 
     /// @name Getters
     ///@{
-    fe::Driver& driver() { return driver_; }
+    Driver& driver() { return driver_; }
     Sym name() const { return name_; }
     const auto& nodes() const { return nodes_; }
     ///@}
 
     void set_name(Sym name) { name_ = name; }
-    Node* node(Sym name); ///< Construct Graph::Node without duplicates.
+    Node* node(Sym name, fe::Loc loc = {}); ///< Construct Graph::Node without duplicates; @p loc mentions it.
     void critical_edge_elimination();
 
 private:
-    fe::Driver& driver_;
+    Driver& driver_;
     Sym name_;
     Node* entry_ = nullptr;
     Node* exit_  = nullptr;
+    fe::Loc exit_loc_; ///< The last mention of any Node - which is what makes exit_ the exit.
     fe::SymMap<Node*> nodes_;
     std::array<fe::Vector<Node*>, 2> rpo_;
 
@@ -108,6 +114,7 @@ public:
     static size_t pre(Node* n) { return order(n).pre; }
     static size_t post(Node* n) { return order(n).post; }
     static size_t rp(Node* n) { return order(n).rp; }
+    static bool reached(Node* n) { return rp(n) != Not_Visited; } ///< Is @p n reachable from entry()?
     static Node*& idom(Node* n) { return n->idom_[M]; }
     static auto& children(Node* n) { return n->children_[M]; }
     static auto& frontier(Node* n) { return n->frontier_[M]; }

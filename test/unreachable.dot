@@ -1,4 +1,4 @@
-// this one is broken at the moment
+// _9.._12 are unreachable from the entry _1, and _1.._8 do not reach the exit _12
 digraph cytron {
     _1 -> _2 -> {_3 _7}
     _3 -> {_4 _5} -> _6
