@@ -14,7 +14,7 @@ std::string_view Tok::tag2str(Tok::Tag tag) {
         GT_VAL(CODE)
         GT_TOK(CODE)
 #undef CODE
-        default: fe::unreachable();
+        default: std::unreachable();
     }
 }
 
